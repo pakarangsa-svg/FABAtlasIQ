@@ -280,6 +280,10 @@
   .npd-ms-item.done .mname{text-decoration:line-through}
   .npd-ms-item .mname{flex:1;min-width:0}
   .npd-ms-dept{flex:none;font-size:9px;font-weight:700;color:var(--mut2);background:var(--panel2);border-radius:999px;padding:1px 6px;white-space:nowrap}
+  .npd-ms-due{flex:none;font-size:9px;color:var(--mut2);white-space:nowrap}
+  .npd-ms-due.overdue{color:var(--red);font-weight:700}
+  .npd-img-thumb{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+  .npd-img-thumb img{width:52px;height:52px;object-fit:cover;border-radius:7px;border:1px solid var(--line)}
   .npd-foot{display:flex;align-items:center;justify-content:space-between;margin-top:10px;padding-top:8px;border-top:1px solid var(--line)}
   /* status chips for NPD */
   .nchip{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:999px;font-size:10px;font-weight:700;white-space:nowrap}
@@ -1210,12 +1214,12 @@ const NPD_STATUSES = [
   { id:"onhold",     label:"On Hold",     ico:"⏸" },
 ];
 const NPD_DEFAULT_MS = [
-  { name:"Concept & theme approved", dept:"R&D" },
-  { name:"Recipe development",       dept:"R&D" },
-  { name:"Internal tasting",         dept:"QA/R&D" },
-  { name:"Costing approved",         dept:"Finance" },
-  { name:"Marketing materials",      dept:"Marketing" },
-  { name:"Store rollout / launch",   dept:"Operations" },
+  { name:"Concept & theme approved", dept:"R&D",        done:false, dueDate:"" },
+  { name:"Recipe development",       dept:"R&D",        done:false, dueDate:"" },
+  { name:"Internal tasting",         dept:"QA/R&D",     done:false, dueDate:"" },
+  { name:"Costing approved",         dept:"Finance",    done:false, dueDate:"" },
+  { name:"Marketing materials",      dept:"Marketing",  done:false, dueDate:"" },
+  { name:"Store rollout / launch",   dept:"Operations", done:false, dueDate:"" },
 ];
 const NPD_ST_COLS = {
   planning:"var(--mut2)", inprogress:"var(--blue)", launched:"var(--green)",
@@ -1232,17 +1236,21 @@ let npdEditBrand = BRANDS[0].id;
 function npdYearProjects(){
   return (DATA.npd||[]).filter(p=>{
     const sy = +p.launchStart.slice(0,4);
-    const ey = +( p.launchEnd||p.launchStart ).slice(0,4);
+    const ey = p.launchEnd ? +p.launchEnd.slice(0,4) : 9999;
     return sy<=npdYear && ey>=npdYear;
   });
 }
 function npdAch(p){ return p.milestones&&p.milestones.length ? Math.round(100*p.milestones.filter(m=>m.done).length/p.milestones.length) : 0; }
 function npdBrandOf(id){ return BRANDS.find(b=>b.id===id)||BRANDS[0]; }
 function npdStatusOf(id){ return NPD_STATUSES.find(s=>s.id===id)||NPD_STATUSES[0]; }
+function toDateStr(s){ return !s ? "" : s.length===7 ? s+"-01" : s; }
+function fmtDue(d){ if(!d) return ""; const [y,m,day]=d.split("-"); return (day?day+" ":"")+NPD_MONTHS[+m-1]+" "+y; }
+function isDueOver(d){ return d && !this.done && d < new Date().toISOString().slice(0,10); }
 function npdFmtWin(p){
   const sm = +p.launchStart.slice(5,7)-1, sy = +p.launchStart.slice(0,4);
-  const em = +(p.launchEnd||p.launchStart).slice(5,7)-1, ey = +(p.launchEnd||p.launchStart).slice(0,4);
   const s = NPD_MONTHS[sm]+" "+sy;
+  if(!p.launchEnd) return s+" →";
+  const em = +p.launchEnd.slice(5,7)-1, ey = +p.launchEnd.slice(0,4);
   const e = NPD_MONTHS[em]+" "+ey;
   return s===e ? s : s+" → "+e;
 }
@@ -1279,7 +1287,17 @@ function viewTimeline(){
 }
 
 function npdDashboard(){
-  const list = npdYearProjects();
+  const all = npdYearProjects();
+  const brandPills = `<div class="npd-pills" style="margin-bottom:14px">
+    <button class="npd-pill ${!npdBrand?'active':''}" onclick="npdBrand='';render()">ทุกแบรนด์</button>
+    ${BRANDS.map(b=>{
+      const n=all.filter(p=>p.brand===b.id).length;
+      return `<button class="npd-pill ${b.id===npdBrand?'active':''}" onclick="npdBrand='${b.id}';render()">
+        <span class="npd-dot" style="background:${b.color}"></span>${esc(b.short.split(' ')[0])}${n?` (${n})`:''}
+      </button>`;
+    }).join('')}
+  </div>`;
+  const list = npdBrand ? all.filter(p=>p.brand===npdBrand) : all;
   const total = list.length;
   const launched = list.filter(p=>["launched","completed"].includes(p.status)).length;
   const completed = list.filter(p=>p.status==="completed").length;
@@ -1372,7 +1390,7 @@ function npdDashboard(){
     </div>
   </div>`;
 
-  return tiles + `<div class="npd-charts">${barChart}${colChart}</div>` + brandCards;
+  return brandPills + tiles + `<div class="npd-charts">${barChart}${colChart}</div>` + (npdBrand ? '' : brandCards);
 }
 
 function npdTile(label, value, note){
@@ -1395,13 +1413,17 @@ function npdProjCard(p){
     </div>
     <div class="npd-prog"><i style="width:${a}%;background:${b.color}"></i></div>
     <div class="npd-ms-list">
-      ${(p.milestones||[]).map((m,i)=>`
-        <div class="npd-ms-item ${m.done?'done':''}" onclick="npdToggleMs('${p.id}',${i})" role="checkbox" aria-checked="${m.done}">
+      ${(p.milestones||[]).map((m,i)=>{
+        const over = m.dueDate && !m.done && m.dueDate < new Date().toISOString().slice(0,10);
+        return `<div class="npd-ms-item ${m.done?'done':''}" onclick="npdToggleMs('${p.id}',${i})" role="checkbox" aria-checked="${m.done}">
           <span class="mbox">${m.done?'✓':''}</span>
           <span class="mname">${esc(m.name)}</span>
           ${m.dept?`<span class="npd-ms-dept">${esc(m.dept)}</span>`:''}
-        </div>`).join('')}
+          ${m.dueDate?`<span class="npd-ms-due ${over?'overdue':''}">${over?'⚠️ ':''}${fmtDue(m.dueDate)}</span>`:''}
+        </div>`;
+      }).join('')}
     </div>
+    ${(p.images||[]).length ? `<div class="npd-img-thumb">${(p.images||[]).slice(0,5).map((img,i)=>`<img src="${img.src}" alt="${esc(img.name)}" title="${esc(img.name)}">`).join('')}${p.images.length>5?`<div style="width:52px;height:52px;background:var(--line);border-radius:7px;display:grid;place-items:center;font-size:12px;font-weight:700;color:var(--mut)">+${p.images.length-5}</div>`:''}</div>` : ''}
     <div class="npd-foot">
       <span style="font-size:11px;font-weight:700;color:var(--mut)">Achievement ${a}%${a===100?' · <span style="color:var(--green)">✅ complete</span>':''}</span>
       <button class="link-btn" onclick="openNpdModal('${p.id}')">Edit ›</button>
@@ -1458,7 +1480,7 @@ function npdGanttView(){
     gantt += `<div class="g-brand-sep"><span class="npd-dot" style="background:${b.color}"></span>${esc(b.short)} <span style="font-weight:400;color:var(--mut2)">· ${bl.length} projects · avg ${avg}%</span></div>`;
     for(const p of bl){
       const s = +p.launchStart.slice(0,4)<npdYear ? 0 : +p.launchStart.slice(5,7)-1;
-      const eRaw = p.launchEnd||p.launchStart;
+      const eRaw = p.launchEnd || (npdYear+"-12");
       const e = +eRaw.slice(0,4)>npdYear ? 11 : +eRaw.slice(5,7)-1;
       const left=100*s/12, width=100*(e-s+1)/12;
       const st=npdStatusOf(p.status);
@@ -1488,11 +1510,18 @@ function npdGanttView(){
 
 function npdProjectsView(){
   const q=npdSearch.toLowerCase();
-  let list=(DATA.npd||[]).filter(p=>(!npdFStatus||p.status===npdFStatus)&&(!q||(p.theme+p.owner+(p.description||"")).toLowerCase().includes(q)))
-    .sort((a,c)=>a.launchStart.localeCompare(c.launchStart));
+  let list=(DATA.npd||[]).filter(p=>
+    (!npdBrand||p.brand===npdBrand) &&
+    (!npdFStatus||p.status===npdFStatus) &&
+    (!q||(p.theme+p.owner+(p.description||"")).toLowerCase().includes(q))
+  ).sort((a,c)=>a.launchStart.localeCompare(c.launchStart));
 
   const toolbar = `<div class="npd-toolbar">
     <div class="npd-search">🔍<input placeholder="ค้นหา theme, owner…" value="${esc(npdSearch)}" oninput="npdSearch=this.value;render()"></div>
+    <select onchange="npdBrand=this.value;render()">
+      <option value="">ทุกแบรนด์</option>
+      ${BRANDS.map(b=>`<option value="${b.id}" ${b.id===npdBrand?'selected':''}>${esc(b.short)}</option>`).join('')}
+    </select>
     <select onchange="npdFStatus=this.value;render()">
       <option value="">All statuses</option>
       ${NPD_STATUSES.map(s=>`<option value="${s.id}" ${s.id===npdFStatus?'selected':''}>${s.ico} ${s.label}</option>`).join('')}
@@ -1528,15 +1557,18 @@ function npdToggleMs(id, i){
 }
 
 let npdMsDraft=[];
+let npdImgDraft=[];
 function openNpdModal(id){
   const isNew=!id;
   const p=id ? JSON.parse(JSON.stringify((DATA.npd||[]).find(x=>x.id===id))) : {
     id:uid("npd"), brand:npdBrand||BRANDS[0].id, theme:"", description:"",
-    owner:"", launchStart:npdYear+"-01", launchEnd:npdYear+"-01",
+    owner:"", launchStart:npdYear+"-01-01", launchEnd:npdYear+"-01-01",
     status:"planning", actualLaunch:null,
-    milestones: NPD_DEFAULT_MS.map(m=>({...m,done:false})), images:[]
+    milestones: NPD_DEFAULT_MS.map(m=>({...m})), images:[]
   };
   npdMsDraft=(p.milestones||[]).map(m=>({...m}));
+  npdImgDraft=(p.images||[]).map(img=>({...img}));
+  const noEnd=!p.launchEnd;
   openModal({
     title: isNew?"เพิ่ม NPD Project":"แก้ไข NPD Project",
     wide: true,
@@ -1551,10 +1583,25 @@ function openNpdModal(id){
         <div class="field"><label>Status</label><select id="np_status">${NPD_STATUSES.map(s=>`<option value="${s.id}" ${s.id===p.status?'selected':''}>${s.ico} ${s.label}</option>`).join('')}</select></div>
       </div>
       <div class="form-row">
-        <div class="field"><label>Launch Start *</label><input id="np_start" type="month" value="${esc(p.launchStart||'')}"/></div>
-        <div class="field"><label>Launch End</label><input id="np_end" type="month" value="${esc(p.launchEnd||'')}"/></div>
+        <div class="field"><label>Launch Start *</label><input id="np_start" type="date" value="${esc(toDateStr(p.launchStart))}"/></div>
+        <div class="field"><label>Launch End</label>
+          <div style="display:flex;align-items:center;gap:8px">
+            <input id="np_end" type="date" value="${esc(toDateStr(p.launchEnd))}" style="flex:1" ${noEnd?'disabled':''}/>
+            <label style="display:flex;align-items:center;gap:5px;font-size:12px;white-space:nowrap;cursor:pointer;color:var(--mut)">
+              <input type="checkbox" id="np_no_end" ${noEnd?'checked':''} onchange="document.getElementById('np_end').disabled=this.checked;document.getElementById('np_end').value=''"> ไม่กำหนด
+            </label>
+          </div>
+        </div>
       </div>
-      <div class="form-row one"><div class="field"><label>Actual Launch (ถ้า launch แล้ว)</label><input id="np_actual" type="month" value="${esc(p.actualLaunch||'')}"/></div></div>
+      <div class="form-row one"><div class="field"><label>Actual Launch (ถ้า launch แล้ว)</label><input id="np_actual" type="date" value="${esc(toDateStr(p.actualLaunch))}"/></div></div>
+      <div class="form-row one"><div class="field">
+        <label>รูปเมนูที่เกี่ยวข้อง</label>
+        <div id="np_img_preview" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px"></div>
+        <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;border:1.5px dashed var(--line);border-radius:8px;padding:7px 13px;font-size:12px;color:var(--mut);background:var(--panel2)">
+          📷 เพิ่มรูปเมนู
+          <input type="file" id="np_img_input" accept="image/*" multiple style="display:none" onchange="npdAddImages(this)">
+        </label>
+      </div></div>
       <div class="form-row one"><div class="field">
         <label>Milestones</label>
         <div id="np_ms_edit" style="display:flex;flex-direction:column;gap:5px"></div>
@@ -1566,10 +1613,14 @@ function openNpdModal(id){
       const g=id=>document.getElementById(id); const v=id=>g(id).value;
       p.theme=v("np_theme").trim(); if(!p.theme){toast("ใส่ชื่อโปรเจกต์","err");return false;}
       p.brand=v("np_brand"); p.description=v("np_desc"); p.owner=v("np_owner"); p.status=v("np_status");
-      let start=v("np_start"), end=v("np_end")||start;
-      if(end<start) end=start;
-      p.launchStart=start; p.launchEnd=end; p.actualLaunch=v("np_actual")||null;
+      const noEndChk=document.getElementById("np_no_end").checked;
+      let start=v("np_start"); if(!start){toast("ใส่วันที่ Launch Start","err");return false;}
+      let end=noEndChk ? null : (v("np_end")||null);
+      if(end && end<start) end=start;
+      p.launchStart=start; p.launchEnd=end;
+      p.actualLaunch=v("np_actual")||null;
       p.milestones=npdMsDraft.filter(m=>m.name.trim());
+      p.images=npdImgDraft;
       if(!DATA.npd) DATA.npd=[];
       const idx=DATA.npd.findIndex(x=>x.id===p.id);
       if(idx>=0) DATA.npd[idx]=p; else DATA.npd.push(p);
@@ -1577,7 +1628,7 @@ function openNpdModal(id){
       save(); render(); toast(isNew?"เพิ่ม NPD Project แล้ว":"บันทึกแล้ว"); return true;
     }
   });
-  npdRenderMs();
+  npdRenderMs(); npdRenderImgs();
   if(id){
     const modal=document.getElementById("modal");
     const foot=modal.querySelector(".modal-foot");
@@ -1596,14 +1647,34 @@ function openNpdModal(id){
 function npdRenderMs(){
   const wrap=document.getElementById("np_ms_edit"); if(!wrap) return;
   wrap.innerHTML=npdMsDraft.map((m,i)=>`
-    <div style="display:flex;gap:6px;align-items:center">
-      <input type="checkbox" ${m.done?'checked':''} onchange="npdMsDraft[${i}].done=this.checked" style="width:14px;height:14px;accent-color:var(--green);flex:none">
-      <input type="text" value="${esc(m.name)}" oninput="npdMsDraft[${i}].name=this.value" placeholder="Milestone" style="flex:1;background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:5px 8px;color:var(--txt);font-size:12px">
-      <input type="text" value="${esc(m.dept||'')}" oninput="npdMsDraft[${i}].dept=this.value" placeholder="Dept" list="npdDeptList" style="width:90px;background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:5px 8px;color:var(--txt);font-size:12px">
-      <button type="button" onclick="npdMsDraft.splice(${i},1);npdRenderMs()" style="color:var(--mut2);font-size:14px;padding:2px 5px">×</button>
+    <div style="display:grid;grid-template-columns:14px 1fr 90px 110px 24px;gap:5px;align-items:center">
+      <input type="checkbox" ${m.done?'checked':''} onchange="npdMsDraft[${i}].done=this.checked" style="width:14px;height:14px;accent-color:var(--green)">
+      <input type="text" value="${esc(m.name)}" oninput="npdMsDraft[${i}].name=this.value" placeholder="ชื่อ milestone" style="background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:5px 8px;color:var(--txt);font-size:12px;width:100%">
+      <input type="text" value="${esc(m.dept||'')}" oninput="npdMsDraft[${i}].dept=this.value" placeholder="Dept" list="npdDeptList" style="background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:5px 8px;color:var(--txt);font-size:12px;width:100%">
+      <input type="date" value="${esc(m.dueDate||'')}" onchange="npdMsDraft[${i}].dueDate=this.value" title="กำหนดเสร็จ" style="background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:5px 8px;color:var(--txt);font-size:12px;width:100%">
+      <button type="button" onclick="npdMsDraft.splice(${i},1);npdRenderMs()" style="color:var(--mut2);font-size:14px;padding:2px 4px">×</button>
     </div>`).join('');
 }
-function npdAddMs(){ npdMsDraft.push({name:'',dept:'',done:false}); npdRenderMs(); }
+function npdAddMs(){ npdMsDraft.push({name:'',dept:'',done:false,dueDate:''}); npdRenderMs(); }
+
+function npdRenderImgs(){
+  const wrap=document.getElementById("np_img_preview"); if(!wrap) return;
+  wrap.innerHTML=npdImgDraft.map((img,i)=>`
+    <div style="position:relative;width:68px;height:68px">
+      <img src="${img.src}" style="width:68px;height:68px;object-fit:cover;border-radius:8px;border:1px solid var(--line)" title="${esc(img.name)}">
+      <button type="button" onclick="npdImgDraft.splice(${i},1);npdRenderImgs()" style="position:absolute;top:-5px;right:-5px;width:18px;height:18px;border-radius:50%;background:var(--red);color:#fff;font-size:11px;border:none;cursor:pointer;display:grid;place-items:center;padding:0">×</button>
+    </div>`).join('');
+}
+function npdAddImages(inp){
+  const files=[...inp.files];
+  let loaded=0;
+  files.forEach(f=>{
+    const r=new FileReader();
+    r.onload=e=>{ npdImgDraft.push({name:f.name,src:e.target.result}); loaded++; if(loaded===files.length) npdRenderImgs(); };
+    r.readAsDataURL(f);
+  });
+  inp.value="";
+}
 
 /* =========================================================================
    VIEW: COST RM (raw materials)
