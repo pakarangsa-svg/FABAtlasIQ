@@ -1,0 +1,1224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FAB KPI Tracker · FabFood Group</title>
+<style>
+:root {
+  color-scheme: light;
+  --surface-1: #fcfcfb;
+  --page: #f9f9f7;
+  --ink-1: #0b0b0b;
+  --ink-2: #52514e;
+  --muted: #898781;
+  --grid: #e1e0d9;
+  --baseline: #c3c2b7;
+  --border: rgba(11,11,11,0.10);
+  --good: #0ca30c;
+  --good-text: #006300;
+  --warning: #fab219;
+  --serious: #ec835a;
+  --critical: #d03b3b;
+  --b1: #2a78d6;  /* Santa Fe Happy Steak */
+  --b2: #eb6834;  /* Santa Fe Easy */
+  --b3: #1baf7a;  /* Jae Dang */
+  --b4: #eda100;  /* Yamachan */
+  --b5: #e87ba4;  /* Top Secret Ramen */
+  --b6: #008300;  /* Top Secret Cafe */
+  --b7: #4a3aa7;  /* Uchidaya */
+  --seq-250: #86b6ef;
+  --accent: #2a78d6;
+  --shadow: 0 1px 2px rgba(11,11,11,0.05), 0 4px 14px rgba(11,11,11,0.05);
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --surface-1: #1a1a19;
+  --page: #0d0d0d;
+  --ink-1: #ffffff;
+  --ink-2: #c3c2b7;
+  --muted: #898781;
+  --grid: #2c2c2a;
+  --baseline: #383835;
+  --border: rgba(255,255,255,0.10);
+  --good: #0ca30c;
+  --good-text: #0ca30c;
+  --b1: #3987e5;
+  --b2: #d95926;
+  --b3: #199e70;
+  --b4: #c98500;
+  --b5: #d55181;
+  --b6: #008300;
+  --b7: #9085e9;
+  --seq-250: #184f95;
+  --accent: #3987e5;
+  --shadow: none;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 15px; }
+body {
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  background: var(--page);
+  color: var(--ink-1);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+button { font: inherit; cursor: pointer; color: inherit; background: none; border: none; }
+input, select, textarea { font: inherit; color: var(--ink-1); }
+
+/* ---------- Header ---------- */
+header {
+  position: sticky; top: 0; z-index: 40;
+  background: color-mix(in srgb, var(--page) 88%, transparent);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--border);
+}
+.hd-inner {
+  max-width: 1240px; margin: 0 auto; padding: 14px 24px 0;
+}
+.hd-top { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.logo {
+  width: 34px; height: 34px; border-radius: 9px;
+  background: linear-gradient(135deg, var(--b1), var(--b7));
+  display: grid; place-items: center;
+  color: #fff; font-weight: 800; font-size: 15px; letter-spacing: -0.5px;
+  flex: none;
+}
+.hd-title h1 { font-size: 1.05rem; font-weight: 700; letter-spacing: -0.01em; }
+.hd-title p { font-size: 0.72rem; color: var(--muted); margin-top: 1px; }
+.hd-spacer { flex: 1; }
+.hd-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.year-select {
+  display: flex; align-items: center; gap: 6px;
+  border: 1px solid var(--border); background: var(--surface-1);
+  border-radius: 9px; padding: 6px 10px; font-size: 0.85rem; font-weight: 600;
+}
+.year-select select { border: none; background: transparent; font-weight: 700; outline: none; cursor: pointer; }
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 13px; border-radius: 9px; font-size: 0.83rem; font-weight: 600;
+  border: 1px solid var(--border); background: var(--surface-1); color: var(--ink-1);
+  transition: background 0.15s, transform 0.05s;
+}
+.btn:hover { background: color-mix(in srgb, var(--surface-1) 90%, var(--ink-1)); }
+.btn:active { transform: scale(0.98); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.btn.primary:hover { background: color-mix(in srgb, var(--accent) 88%, #000); }
+.btn.icon-only { padding: 7px 9px; }
+nav.tabs { display: flex; gap: 2px; margin-top: 10px; }
+nav.tabs button {
+  padding: 9px 15px; font-size: 0.87rem; font-weight: 600; color: var(--ink-2);
+  border-bottom: 2px solid transparent; border-radius: 8px 8px 0 0;
+}
+nav.tabs button:hover { color: var(--ink-1); background: color-mix(in srgb, var(--surface-1) 70%, transparent); }
+nav.tabs button.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+/* ---------- Layout ---------- */
+main { max-width: 1240px; margin: 0 auto; padding: 22px 24px 80px; }
+.view { display: none; }
+.view.active { display: block; animation: fade 0.2s ease; }
+@keyframes fade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+.section-h { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin: 26px 0 12px; flex-wrap: wrap; }
+.section-h h2 { font-size: 0.95rem; font-weight: 700; letter-spacing: -0.01em; }
+.section-h .sub { font-size: 0.78rem; color: var(--muted); }
+
+/* ---------- Cards & tiles ---------- */
+.card {
+  background: var(--surface-1); border: 1px solid var(--border);
+  border-radius: 14px; padding: 18px 20px; box-shadow: var(--shadow);
+}
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+.tile { background: var(--surface-1); border: 1px solid var(--border); border-radius: 14px; padding: 14px 16px; box-shadow: var(--shadow); }
+.tile .t-label { font-size: 0.72rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+.tile .t-value { font-size: 1.75rem; font-weight: 750; letter-spacing: -0.02em; margin-top: 4px; line-height: 1.1; }
+.tile .t-note { font-size: 0.74rem; color: var(--ink-2); margin-top: 4px; display: flex; align-items: center; gap: 5px; }
+.t-note .up { color: var(--good-text); font-weight: 700; }
+.t-note .down { color: var(--critical); font-weight: 700; }
+
+/* ---------- Charts ---------- */
+.charts-row { display: grid; grid-template-columns: 1.15fr 1fr; gap: 12px; margin-top: 12px; }
+@media (max-width: 900px) { .charts-row { grid-template-columns: 1fr; } }
+.chart-title { font-size: 0.88rem; font-weight: 700; margin-bottom: 2px; }
+.chart-sub { font-size: 0.74rem; color: var(--muted); margin-bottom: 14px; }
+.legend { display: flex; flex-wrap: wrap; gap: 10px 14px; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--grid); }
+.legend .li { display: inline-flex; align-items: center; gap: 6px; font-size: 0.74rem; color: var(--ink-2); }
+.legend .sw { width: 10px; height: 10px; border-radius: 3px; flex: none; }
+
+/* stacked horizontal brand bars */
+.hbar-row { display: grid; grid-template-columns: 150px 1fr 34px; align-items: center; gap: 10px; margin-bottom: 9px; }
+.hbar-label { font-size: 0.78rem; font-weight: 600; color: var(--ink-2); display: flex; align-items: center; gap: 7px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hbar-label .dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+.hbar-track { height: 18px; display: flex; gap: 2px; align-items: stretch; }
+.hbar-seg { border-radius: 3px; min-width: 3px; transition: opacity 0.15s; cursor: default; }
+.hbar-seg:first-child { border-top-left-radius: 5px; border-bottom-left-radius: 5px; }
+.hbar-seg:last-child { border-top-right-radius: 5px; border-bottom-right-radius: 5px; }
+.hbar-track:hover .hbar-seg { opacity: 0.55; }
+.hbar-track:hover .hbar-seg:hover { opacity: 1; }
+.hbar-total { font-size: 0.78rem; font-weight: 700; color: var(--ink-2); text-align: right; font-variant-numeric: tabular-nums; }
+
+/* monthly column chart */
+.colchart { display: grid; grid-template-columns: repeat(12, 1fr); gap: 6px; align-items: end; height: 150px; padding-top: 6px; }
+.colchart .col { display: flex; flex-direction: column; justify-content: flex-end; gap: 2px; height: 100%; position: relative; cursor: default; }
+.colchart .col .seg { border-radius: 4px 4px 0 0; min-height: 0; }
+.colchart .col .seg.bottom { border-radius: 0; }
+.colchart .col .seg.only { border-radius: 4px 4px 0 0; }
+.colchart .col:hover .seg { opacity: 0.7; }
+.col-axis { display: grid; grid-template-columns: repeat(12, 1fr); gap: 6px; margin-top: 6px; border-top: 1px solid var(--baseline); padding-top: 5px; }
+.col-axis span { font-size: 0.68rem; color: var(--muted); text-align: center; }
+
+/* progress bars */
+.prog { height: 7px; background: var(--grid); border-radius: 4px; overflow: hidden; }
+.prog > i { display: block; height: 100%; border-radius: 4px; background: var(--accent); transition: width 0.4s ease; }
+
+/* brand cards grid */
+.brand-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; }
+.brand-card { background: var(--surface-1); border: 1px solid var(--border); border-radius: 14px; padding: 16px; box-shadow: var(--shadow); cursor: pointer; transition: border-color 0.15s, transform 0.1s; text-align: left; width: 100%; }
+.brand-card:hover { border-color: var(--muted); transform: translateY(-1px); }
+.brand-card .bc-top { display: flex; align-items: center; gap: 9px; margin-bottom: 12px; }
+.bc-swatch { width: 30px; height: 30px; border-radius: 9px; flex: none; display: grid; place-items: center; color: #fff; font-size: 0.7rem; font-weight: 800; }
+.bc-name { font-size: 0.85rem; font-weight: 700; line-height: 1.2; }
+.bc-count { font-size: 0.7rem; color: var(--muted); }
+.bc-stats { display: flex; gap: 14px; margin-bottom: 10px; }
+.bc-stat b { display: block; font-size: 1.05rem; font-weight: 750; }
+.bc-stat span { font-size: 0.66rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+.bc-prog-label { display: flex; justify-content: space-between; font-size: 0.7rem; color: var(--ink-2); margin: 8px 0 4px; }
+
+/* ---------- Chips & status ---------- */
+.chip { display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px; border-radius: 999px; font-size: 0.72rem; font-weight: 650; border: 1px solid transparent; white-space: nowrap; }
+.chip .cdot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.chip.st-planning   { color: var(--ink-2); background: color-mix(in srgb, var(--muted) 14%, transparent); }
+.chip.st-inprogress { color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); }
+.chip.st-launched   { color: var(--good-text); background: color-mix(in srgb, var(--good) 13%, transparent); }
+.chip.st-completed  { color: #fff; background: var(--good); }
+.chip.st-delayed    { color: var(--critical); background: color-mix(in srgb, var(--critical) 12%, transparent); }
+.chip.st-onhold     { color: var(--serious); background: color-mix(in srgb, var(--serious) 14%, transparent); }
+.brand-chip { display: inline-flex; align-items: center; gap: 6px; font-size: 0.76rem; font-weight: 600; color: var(--ink-2); }
+.brand-chip .dot { width: 8px; height: 8px; border-radius: 50%; }
+
+/* brand filter pills */
+.pills { display: flex; gap: 6px; flex-wrap: wrap; }
+.pill { padding: 6px 13px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface-1); font-size: 0.78rem; font-weight: 600; color: var(--ink-2); display: inline-flex; align-items: center; gap: 6px; }
+.pill .dot { width: 8px; height: 8px; border-radius: 50%; }
+.pill:hover { border-color: var(--muted); }
+.pill.active { background: var(--ink-1); color: var(--page); border-color: var(--ink-1); }
+
+/* ---------- Project cards (brand view) ---------- */
+.proj-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 12px; }
+.proj-card { background: var(--surface-1); border: 1px solid var(--border); border-radius: 14px; padding: 16px; box-shadow: var(--shadow); border-top: 3px solid var(--pc, var(--accent)); }
+.pc-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 6px; }
+.pc-title { font-size: 0.92rem; font-weight: 700; line-height: 1.25; }
+.pc-desc { font-size: 0.78rem; color: var(--ink-2); line-height: 1.45; margin: 6px 0 10px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.pc-meta { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 0.74rem; color: var(--muted); margin-bottom: 12px; }
+.pc-meta b { color: var(--ink-2); font-weight: 600; }
+.ms-list { display: flex; flex-direction: column; gap: 4px; margin-top: 10px; }
+.ms-item { display: flex; align-items: center; gap: 8px; font-size: 0.78rem; color: var(--ink-2); padding: 3px 6px; border-radius: 6px; cursor: pointer; user-select: none; }
+.ms-item:hover { background: color-mix(in srgb, var(--muted) 10%, transparent); }
+.ms-item .box { width: 15px; height: 15px; border: 1.5px solid var(--baseline); border-radius: 4px; flex: none; display: grid; place-items: center; font-size: 10px; color: #fff; }
+.ms-item.done .box { background: var(--good); border-color: var(--good); }
+.ms-item.done { color: var(--muted); }
+.ms-item.done .ms-name { text-decoration: line-through; }
+.ms-item .ms-name { flex: 1; min-width: 0; }
+.ms-dept { flex: none; font-size: 0.62rem; font-weight: 700; letter-spacing: 0.02em; color: var(--muted); background: color-mix(in srgb, var(--muted) 12%, transparent); border-radius: 999px; padding: 2px 8px; white-space: nowrap; }
+.ms-item.done .ms-dept { opacity: 0.65; }
+.pc-foot { display: flex; align-items: center; justify-content: space-between; margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--grid); }
+.pc-ach { font-size: 0.74rem; font-weight: 700; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.link-btn { font-size: 0.76rem; font-weight: 600; color: var(--accent); padding: 4px 8px; border-radius: 6px; }
+.link-btn:hover { background: color-mix(in srgb, var(--accent) 10%, transparent); }
+.link-btn.danger { color: var(--critical); }
+.link-btn.danger:hover { background: color-mix(in srgb, var(--critical) 10%, transparent); }
+
+/* ---------- Timeline (Gantt) ---------- */
+.gantt { overflow-x: auto; }
+.gantt-inner { min-width: 860px; }
+.g-months { display: grid; grid-template-columns: 210px repeat(12, 1fr); border-bottom: 1px solid var(--baseline); padding-bottom: 6px; margin-bottom: 4px; }
+.g-months span { font-size: 0.7rem; font-weight: 650; color: var(--muted); text-align: center; }
+.g-brand-row { display: grid; grid-template-columns: 210px 1fr; align-items: baseline; padding: 10px 0 3px; }
+.g-brand-sum { font-size: 0.72rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.g-brand-name { font-size: 0.76rem; font-weight: 750; text-transform: uppercase; letter-spacing: 0.05em; display: flex; align-items: center; gap: 7px; }
+.g-brand-name .dot { width: 8px; height: 8px; border-radius: 50%; }
+.g-row { display: grid; grid-template-columns: 210px repeat(12, 1fr); align-items: center; min-height: 34px; position: relative; }
+.g-row:hover { background: color-mix(in srgb, var(--muted) 7%, transparent); border-radius: 8px; }
+.g-label { font-size: 0.79rem; color: var(--ink-1); padding-right: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; gap: 6px; }
+.g-label .st-ico { font-size: 0.7rem; flex: none; }
+.g-bar-wrap { grid-column: 2 / 14; position: relative; height: 18px; }
+.g-cell-grid { position: absolute; inset: 0; display: grid; grid-template-columns: repeat(12, 1fr); }
+.g-cell-grid i { border-left: 1px solid var(--grid); }
+.g-bar { position: absolute; top: 0; height: 18px; border-radius: 5px; display: flex; align-items: center; padding: 0 7px; font-size: 0.66rem; font-weight: 700; color: #fff; cursor: default; min-width: 14px; }
+.g-bar .gb-txt { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.g-bar:hover { filter: brightness(1.1); }
+.g-today { position: absolute; top: -2px; bottom: -2px; width: 2px; background: var(--critical); border-radius: 2px; z-index: 2; }
+
+/* ---------- Table ---------- */
+.tbl-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 14px; background: var(--surface-1); box-shadow: var(--shadow); }
+table { width: 100%; border-collapse: collapse; min-width: 980px; }
+th { text-align: left; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); padding: 12px 14px; border-bottom: 1px solid var(--grid); white-space: nowrap; }
+td { padding: 11px 14px; font-size: 0.82rem; border-bottom: 1px solid var(--grid); vertical-align: middle; }
+tr:last-child td { border-bottom: none; }
+tbody tr:hover { background: color-mix(in srgb, var(--muted) 6%, transparent); }
+td .t-theme { font-weight: 650; }
+td .t-desc { font-size: 0.72rem; color: var(--muted); margin-top: 2px; max-width: 260px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ach-cell { display: flex; align-items: center; gap: 8px; min-width: 120px; }
+.ach-cell .prog { flex: 1; }
+.ach-cell span { font-size: 0.74rem; font-weight: 700; font-variant-numeric: tabular-nums; width: 34px; text-align: right; }
+
+/* ---------- Toolbar ---------- */
+.toolbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+.toolbar .search { flex: 1; min-width: 180px; display: flex; align-items: center; gap: 8px; border: 1px solid var(--border); background: var(--surface-1); border-radius: 9px; padding: 7px 12px; }
+.toolbar .search input { border: none; outline: none; background: transparent; width: 100%; font-size: 0.84rem; }
+.toolbar select { border: 1px solid var(--border); background: var(--surface-1); border-radius: 9px; padding: 7px 10px; font-size: 0.82rem; font-weight: 600; outline: none; cursor: pointer; }
+
+/* ---------- Modal ---------- */
+.modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 100; display: none; align-items: flex-start; justify-content: center; padding: 5vh 16px; overflow-y: auto; }
+.modal-bg.open { display: flex; }
+.modal { background: var(--surface-1); border-radius: 16px; padding: 24px; width: 100%; max-width: 560px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); animation: fade 0.2s ease; }
+.modal h3 { font-size: 1.05rem; font-weight: 750; margin-bottom: 18px; }
+.f-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.f-full { grid-column: 1 / -1; }
+.f-field label { display: block; font-size: 0.72rem; font-weight: 700; color: var(--ink-2); margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.04em; }
+.f-field input, .f-field select, .f-field textarea {
+  width: 100%; border: 1px solid var(--border); background: var(--page);
+  border-radius: 9px; padding: 8px 11px; font-size: 0.86rem; outline: none;
+}
+.f-field input:focus, .f-field select:focus, .f-field textarea:focus { border-color: var(--accent); }
+.f-field textarea { resize: vertical; min-height: 64px; }
+.ms-edit { display: flex; flex-direction: column; gap: 6px; }
+.ms-edit-row { display: flex; gap: 8px; align-items: center; }
+.ms-edit-row input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--good); flex: none; }
+.ms-edit-row input[type="text"] { flex: 1; }
+.ms-edit-row input.ms-dept-input { flex: none; width: 110px; }
+.lbl-hint { font-weight: 400; text-transform: none; letter-spacing: 0; color: var(--muted); }
+
+/* project card image strip */
+.pc-imgs { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.pc-imgs img { width: 62px; height: 62px; object-fit: cover; border-radius: 8px; cursor: zoom-in; border: 1px solid var(--baseline); transition: transform 0.12s; }
+.pc-imgs img:hover { transform: scale(1.05); }
+.pc-imgs .more { width: 62px; height: 62px; border-radius: 8px; display: grid; place-items: center; font-size: 0.75rem; font-weight: 700; color: var(--muted); background: color-mix(in srgb, var(--muted) 10%, transparent); cursor: pointer; }
+
+/* modal image editor */
+.img-edit { display: flex; flex-wrap: wrap; gap: 8px; }
+.img-edit:empty::before { content: 'ยังไม่มีรูป — กด “Add images” เพื่อเลือกรูปเมนู'; font-size: 0.78rem; color: var(--muted); }
+.img-thumb { position: relative; width: 76px; height: 76px; }
+.img-thumb img { width: 100%; height: 100%; object-fit: cover; border-radius: 8px; border: 1px solid var(--baseline); }
+.img-thumb button { position: absolute; top: -6px; right: -6px; width: 20px; height: 20px; border-radius: 50%; background: var(--critical); color: #fff; font-size: 11px; line-height: 1; display: grid; place-items: center; border: 2px solid var(--card); cursor: pointer; }
+
+/* lightbox */
+.lightbox { position: fixed; inset: 0; background: rgba(10,12,16,0.88); display: none; align-items: center; justify-content: center; z-index: 200; }
+.lightbox.open { display: flex; }
+.lightbox img { max-width: min(88vw, 1000px); max-height: 82vh; border-radius: 12px; box-shadow: 0 24px 80px rgba(0,0,0,0.5); }
+.lb-close { position: absolute; top: 18px; right: 22px; color: #fff; font-size: 1.3rem; opacity: 0.8; }
+.lb-close:hover { opacity: 1; }
+.lb-nav { position: absolute; top: 50%; transform: translateY(-50%); color: #fff; font-size: 2.4rem; padding: 8px 18px; opacity: 0.75; user-select: none; }
+.lb-nav:hover { opacity: 1; }
+.lb-prev { left: 8px; } .lb-next { right: 8px; }
+.lb-cap { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); color: #fff; font-size: 0.8rem; opacity: 0.85; background: rgba(0,0,0,0.45); padding: 4px 14px; border-radius: 999px; }
+.ms-edit-row button { color: var(--muted); font-size: 1rem; padding: 2px 6px; }
+.ms-edit-row button:hover { color: var(--critical); }
+.modal-actions { display: flex; justify-content: space-between; align-items: center; margin-top: 20px; }
+.modal-actions .right { display: flex; gap: 8px; }
+
+/* ---------- Tooltip ---------- */
+#tooltip {
+  position: fixed; z-index: 200; pointer-events: none; display: none;
+  background: var(--ink-1); color: var(--page); padding: 7px 11px;
+  border-radius: 9px; font-size: 0.75rem; line-height: 1.45; max-width: 260px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+}
+#tooltip b { font-weight: 700; }
+
+/* ---------- Misc ---------- */
+.empty { text-align: center; color: var(--muted); font-size: 0.85rem; padding: 40px 0; }
+.footer-note { text-align: center; font-size: 0.72rem; color: var(--muted); margin-top: 40px; line-height: 1.6; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+#toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: var(--ink-1); color: var(--page); padding: 10px 18px; border-radius: 10px; font-size: 0.82rem; font-weight: 600; z-index: 300; display: none; box-shadow: 0 6px 24px rgba(0,0,0,0.25); }
+@media (max-width: 700px) {
+  .hbar-row { grid-template-columns: 110px 1fr 30px; }
+  main { padding: 16px 14px 60px; }
+  .hd-inner { padding: 12px 14px 0; }
+}
+
+/* ---- FAB branding ---- */
+.logo-fab { background: linear-gradient(135deg,#4f46e5,#f97316,#dc2626) !important; }
+.logo-fab img { width:24px; height:24px; object-fit:contain; }
+
+/* ---- Brand logo in swatch ---- */
+.bc-swatch-img { background: #fff !important; padding: 3px; }
+.bc-swatch-img img { width: 100%; height: 100%; object-fit: contain; border-radius: 7px; display: block; }
+
+/* ---- Mobile responsive improvements ---- */
+@media (max-width: 600px) {
+  .hd-top { gap: 10px; }
+  .hd-title h1 { font-size: 0.9rem; }
+  .hd-actions { gap: 6px; }
+  .hd-actions .btn:not(.primary):not(.icon-only) { display: none; }
+  nav.tabs { overflow-x: auto; gap: 0; scrollbar-width: none; padding-bottom: 1px; }
+  nav.tabs::-webkit-scrollbar { display: none; }
+  nav.tabs button { padding: 8px 12px; font-size: 0.82rem; flex-shrink: 0; }
+  .tiles { grid-template-columns: repeat(2, 1fr); }
+  .charts-row { grid-template-columns: 1fr; }
+  .brand-grid { grid-template-columns: repeat(2, 1fr); }
+  .brand-card { padding: 12px; }
+  .bc-name { font-size: 0.75rem; }
+  .bc-swatch { width: 34px; height: 34px; }
+  .proj-grid { grid-template-columns: 1fr; }
+  .hbar-row { grid-template-columns: 90px 1fr 28px; }
+  .tbl-wrap table { min-width: 700px; }
+  .modal { padding: 16px; max-width: 100%; border-radius: 12px; }
+  main { padding: 16px 12px 80px; }
+  .pills { gap: 4px; overflow-x: auto; flex-wrap: nowrap; scrollbar-width: none; padding-bottom: 2px; }
+  .pills::-webkit-scrollbar { display: none; }
+  .pill { flex-shrink: 0; }
+  .modal-bg { padding: 2vh 10px; }
+  .f-grid { grid-template-columns: 1fr; }
+  .f-full { grid-column: 1; }
+  .gantt-inner { min-width: 700px; }
+  .g-label { font-size: 0.72rem; }
+  .tile .t-value { font-size: 1.4rem; }
+}
+@media (max-width: 400px) {
+  .brand-grid { grid-template-columns: 1fr; }
+  .tiles { grid-template-columns: repeat(2, 1fr); }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hd-inner">
+    <div class="hd-top">
+      <div class="logo logo-fab">FAB</div>
+      <div class="hd-title">
+        <h1>FAB KPI Tracker</h1>
+        <p>FAB · FabFood Group · 7 Brands</p>
+      </div>
+      <div class="hd-spacer"></div>
+      <div class="hd-actions">
+        <div class="year-select">
+          <span style="color:var(--muted);font-weight:500;font-size:0.76rem">Year</span>
+          <select id="yearSel"></select>
+        </div>
+        <button class="btn icon-only" id="themeBtn" title="Toggle dark mode">◐</button>
+        <button class="btn" id="exportBtn" title="Download data as JSON">⭳ Export</button>
+        <button class="btn" id="importBtn" title="Load data from JSON">⭱ Import</button>
+        <input type="file" id="importFile" accept=".json" class="sr-only">
+        <button class="btn primary" id="newProjBtn">＋ New Project</button>
+      </div>
+    </div>
+    <nav class="tabs" id="tabs">
+      <button data-view="dashboard" class="active">Dashboard</button>
+      <button data-view="brands">Brands</button>
+      <button data-view="timeline">Timeline</button>
+      <button data-view="projects">Projects</button>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <!-- ============ DASHBOARD ============ -->
+  <section class="view active" id="view-dashboard">
+    <div class="tiles" id="dashTiles"></div>
+    <div class="charts-row">
+      <div class="card">
+        <div class="chart-title">Projects by Brand</div>
+        <div class="chart-sub" id="hbarSub"></div>
+        <div id="hbarChart"></div>
+        <div class="legend" id="statusLegend"></div>
+      </div>
+      <div class="card">
+        <div class="chart-title">Launch Schedule by Month</div>
+        <div class="chart-sub" id="colSub"></div>
+        <div class="colchart" id="colChart"></div>
+        <div class="col-axis" id="colAxis"></div>
+        <div class="legend" id="colLegend"></div>
+      </div>
+    </div>
+    <div class="section-h">
+      <h2>Brand Overview</h2>
+      <span class="sub">Click a brand to open its detail page</span>
+    </div>
+    <div class="brand-grid" id="brandCards"></div>
+  </section>
+
+  <!-- ============ BRANDS ============ -->
+  <section class="view" id="view-brands">
+    <div class="toolbar">
+      <div class="pills" id="brandPills"></div>
+    </div>
+    <div class="tiles" id="brandTiles" style="margin-bottom:16px"></div>
+    <div class="proj-grid" id="brandProjects"></div>
+  </section>
+
+  <!-- ============ TIMELINE ============ -->
+  <section class="view" id="view-timeline">
+    <div class="toolbar">
+      <div class="pills" id="tlPills"></div>
+    </div>
+    <div class="tiles" id="tlBrandSummary" style="margin-bottom:14px"></div>
+    <div class="card gantt">
+      <div class="chart-title" style="margin-bottom:2px">Launch Timeline</div>
+      <div class="chart-sub" id="ganttSub"></div>
+      <div class="gantt-inner" id="ganttBody"></div>
+      <div class="legend" id="ganttLegend"></div>
+    </div>
+  </section>
+
+  <!-- ============ PROJECTS ============ -->
+  <section class="view" id="view-projects">
+    <div class="toolbar">
+      <div class="search">🔍<input id="searchInput" placeholder="Search theme, owner…"></div>
+      <select id="filterBrand"><option value="">All brands</option></select>
+      <select id="filterStatus"><option value="">All statuses</option></select>
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Theme Project</th><th>Brand</th><th>Launch Window</th><th>Owner</th>
+            <th>Status</th><th>Achievement</th><th></th>
+          </tr>
+        </thead>
+        <tbody id="projTbody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <p class="footer-note">
+    Data lives in this page while it's open. Use <b>Export</b> to save your data as a JSON file
+    and <b>Import</b> to load it back — do this after making changes you want to keep.
+  </p>
+</main>
+
+<!-- ============ MODAL ============ -->
+<div class="modal-bg" id="modalBg">
+  <div class="modal">
+    <h3 id="modalTitle">New Project</h3>
+    <form id="projForm">
+      <div class="f-grid">
+        <div class="f-field f-full">
+          <label>Theme Project Name</label>
+          <input id="fTheme" required placeholder="e.g. Summer Mango Festival">
+        </div>
+        <div class="f-field f-full">
+          <label>Details</label>
+          <textarea id="fDesc" placeholder="Concept, menu items, target customer…"></textarea>
+        </div>
+        <div class="f-field">
+          <label>Brand</label>
+          <select id="fBrand"></select>
+        </div>
+        <div class="f-field">
+          <label>Owner (PIC)</label>
+          <input id="fOwner" placeholder="Responsible person" required>
+        </div>
+        <div class="f-field">
+          <label>Launch Start</label>
+          <input id="fStart" type="month" required>
+        </div>
+        <div class="f-field">
+          <label>Launch End</label>
+          <input id="fEnd" type="month" required>
+        </div>
+        <div class="f-field">
+          <label>Status</label>
+          <select id="fStatus"></select>
+        </div>
+        <div class="f-field">
+          <label>Actual Launch (if launched)</label>
+          <input id="fActual" type="month">
+        </div>
+        <div class="f-field f-full">
+          <label>Milestone Checklist</label>
+          <div class="ms-edit" id="msEdit"></div>
+          <button type="button" class="link-btn" id="addMsBtn" style="margin-top:6px">＋ Add milestone</button>
+          <datalist id="deptList">
+            <option value="R&D"></option><option value="QA / R&D"></option><option value="Finance"></option>
+            <option value="Marketing"></option><option value="Operations"></option><option value="Supply Chain"></option>
+            <option value="Purchasing"></option><option value="Training"></option>
+          </datalist>
+        </div>
+        <div class="f-field f-full">
+          <label>Menu Images <span class="lbl-hint">(กี่รูปก็ได้ · เก็บไปกับข้อมูลตอน Export)</span></label>
+          <div class="img-edit" id="imgEdit"></div>
+          <button type="button" class="link-btn" id="addImgBtn" style="margin-top:6px">＋ Add images</button>
+          <input type="file" id="imgFile" accept="image/*" multiple hidden>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="link-btn danger" id="deleteBtn" style="display:none">Delete project</button>
+        <div class="right">
+          <button type="button" class="btn" id="cancelBtn">Cancel</button>
+          <button type="submit" class="btn primary">Save Project</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div id="tooltip"></div>
+
+<!-- ============ IMAGE LIGHTBOX ============ -->
+<div class="lightbox" id="lightbox" aria-hidden="true">
+  <button class="lb-close" id="lbClose" title="Close">✕</button>
+  <button class="lb-nav lb-prev" id="lbPrev" title="Previous">‹</button>
+  <img id="lbImg" alt="Menu image">
+  <button class="lb-nav lb-next" id="lbNext" title="Next">›</button>
+  <div class="lb-cap" id="lbCap"></div>
+</div>
+<div id="toast"></div>
+
+<script>
+/* ============================================================
+   Product Development KPI Tracker — FabFood Group
+   Single-file app. Data is in-memory; Export/Import JSON persists it.
+   ============================================================ */
+
+const BRANDS = [
+  { id: 'sfhs', name: 'Santa Fe Happy Steak', short: 'SF', color: 'var(--b1)', logo: '../logos/santafe-happy.png' },
+  { id: 'sfe',  name: 'Santa Fe Easy',        short: 'SE', color: 'var(--b2)', logo: '../logos/santafe-easy.jpg' },
+  { id: 'jd',   name: 'Jae Dang',             short: 'JD', color: 'var(--b3)', logo: '../logos/jaedang.jpg' },
+  { id: 'ym',   name: 'Yamachan',             short: 'YM', color: 'var(--b4)', logo: '../logos/yamachan.jpg' },
+  { id: 'tsr',  name: 'Top Secret Ramen',     short: 'TR', color: 'var(--b5)', logo: '../logos/Top secret ramen.jpg' },
+  { id: 'tsc',  name: 'Top Secret Cafe',      short: 'TC', color: 'var(--b6)', logo: '../logos/TopSecretcafe.png' },
+  { id: 'ucd',  name: 'Uchidaya',             short: 'UC', color: 'var(--b7)', logo: '../logos/messageImage_1781777321922.jpg' },
+];
+
+const STATUSES = [
+  { id: 'planning',   label: 'Planning',    ico: '◌' },
+  { id: 'inprogress', label: 'In Progress', ico: '◐' },
+  { id: 'launched',   label: 'Launched',    ico: '▲' },
+  { id: 'completed',  label: 'Completed',   ico: '✓' },
+  { id: 'delayed',    label: 'Delayed',     ico: '⚠' },
+  { id: 'onhold',     label: 'On Hold',     ico: '⏸' },
+];
+
+const DEFAULT_MILESTONES = [
+  { name: 'Concept & theme approved',    dept: 'R&D' },
+  { name: 'Recipe development',          dept: 'R&D' },
+  { name: 'Internal tasting sign-off',   dept: 'QA / R&D' },
+  { name: 'Costing & pricing approved',  dept: 'Finance' },
+  { name: 'Marketing materials ready',   dept: 'Marketing' },
+  { name: 'Store rollout / launch',      dept: 'Operations' },
+];
+
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+/* ---------------- Data (imported from "NPD Timeline 2026.xlsx") ---------------- */
+let _id = 1;
+function p(brand, theme, desc, owner, start, end, status, actual, ms) {
+  return {
+    id: 'pj' + (_id++),
+    brand, theme, description: desc, owner,
+    launchStart: start, launchEnd: end, status,
+    actualLaunch: actual,
+    milestones: (ms || DEFAULT_MILESTONES).map(m => ({ name: m.name, dept: m.dept ?? '', done: !!m.done })),
+    images: [],
+  };
+}
+
+let projects = [
+  /* ===== Santa Fe (sheet "Santa Fe") ===== */
+  p('sfhs','ร่างทอง Takeaway','เมนูสเต๊ก 12 เมนู + แรป 6 เมนู · สาขา: Bestfitt Fitness, Singha Complex, S-Oasis, QSNCC (เฉพาะแรป · งาน Hyrox 8–16 ส.ค.) · เปิดตัว 26 ส.ค. 2026','TBD','2026-08','2026-08','inprogress',null),
+  p('sfhs','ร่างทอง (AI Platform)','Phase 1 สเต๊ก (รวมเนื้อ, กุ้ง) + สาขาเข้าร่วม · ยังไม่ระบุช่วงเปิดตัวในไฟล์ timeline','TBD','2026-08','2026-12','planning',null),
+  p('sfhs','New Promotion "WRAP"','โปรโมชันแรปใหม่ ทุกสาขา KT+FS · กำหนดเปิดสัปดาห์ 20 ก.ย. 2026','TBD','2026-09','2026-09','planning',null),
+  p('sfhs','New Promotion "THAI E-SAN"','สเต๊กหมูปลาร้า, เครื่องเคียงส้มตำปลาร้า, น้ำยำมายองเนสสไปซี่, ยำไทย, ยำปลาร้า · กำหนดเปิดสัปดาห์ 20 ก.ย. 2026','TBD','2026-09','2026-09','planning',null),
+  p('sfhs','New Promotion "CHEESE"','สเต๊กซอสชีสลาวา, เฟรนช์ฟรายผงชีส, ชีสฟองดู, ขนมปังชีสโทสต์ชีสลาวา · กำหนดเปิดสัปดาห์ 11 ต.ค. 2026','TBD','2026-10','2026-10','planning',null),
+  p('sfhs','ร่างทอง DINE-IN','Phase 1 สเต๊ก (รวมเนื้อ, กุ้ง) + Wrap · สาขาเข้าร่วม · กำหนดเปิดสัปดาห์ 11 ต.ค. 2026','TBD','2026-10','2026-10','planning',null),
+  p('sfhs','NEW COMBO','คอมโบใหม่ ทุกสาขา KT+FS · กำหนดเปิดสัปดาห์ 11 ต.ค. 2026','TBD','2026-10','2026-10','planning',null),
+  p('sfhs','NEW MENU','สเต๊กซี่โครงหมูหมักพริกไทยดำน้ำผึ้ง · กำหนดเปิดสัปดาห์ 11 ต.ค. 2026','TBD','2026-10','2026-10','planning',null),
+
+  /* ===== เจ๊แดง (sheet "เจ๊แดง") ===== */
+  p('jd','เปลี่ยนอุปกรณ์ตวง','เปลี่ยนอุปกรณ์ตวงมาตรฐานทุกสาขา · เริ่ม 17 ส.ค. 2026','TBD','2026-08','2026-08','inprogress',null,[
+    { name: 'ชุดช้อนตวงสแตนเลส (ช้อนโต๊ะ, ช้อนชา, 1/2 ชช., 1/4 ชช.)', dept: 'Purchasing' },
+    { name: 'ช้อนงวงใหญ่', dept: 'Purchasing' },
+    { name: 'ช้อนตวง 10 มล.', dept: 'Purchasing' },
+    { name: 'Contact Sheet (10 ส.ค.)', dept: 'R&D' },
+  ]),
+  p('jd','New Menu 6 เมนู','ปีกไก่ทอดเกลือ, หมูยอทอด, ตำโคราช, ตำโคราชกุ้งสด, แกงอ่อมซี่โครงหมู, แกงอ่อมคอหมูย่าง · เปิดขายสัปดาห์ 4 ต.ค. 2026','TBD','2026-10','2026-10','inprogress',null,[
+    { name: 'พัฒนาสูตร 6 เมนู', dept: 'R&D' },
+    { name: 'ถ่ายรูปเมนู (21 ส.ค.)', dept: 'Marketing' },
+    { name: 'BOM POS (23–30 ส.ค.)', dept: 'Operations' },
+    { name: 'เตรียมคู่มือ (23–30 ส.ค.)', dept: 'Training' },
+    { name: 'อบรม operation (สัปดาห์ 6 ก.ย.)', dept: 'Training' },
+    { name: 'เปิดขายทุกสาขา', dept: 'Operations' },
+  ]),
+  p('jd','เจ๊แดง x หมก (Re-branding)','Re-branding ร่วมกับแบรนด์หมก · กำหนดสัปดาห์ 10 ม.ค. 2027','TBD','2027-01','2027-01','planning',null),
+];
+
+/* ---------------- State ---------------- */
+let state = {
+  year: 2026,
+  view: 'dashboard',
+  brand: BRANDS[0].id,     // brands view selection
+  timelineBrand: '',       // timeline view filter ('' = all brands)
+  search: '', filterBrand: '', filterStatus: '',
+  editingId: null,
+};
+
+/* ---------------- Helpers ---------------- */
+const $ = s => document.querySelector(s);
+const brandOf = id => BRANDS.find(b => b.id === id);
+const statusOf = id => STATUSES.find(s => s.id === id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const yearOf = pj => +pj.launchStart.slice(0, 4);
+const monthOf = ym => +ym.slice(5, 7) - 1;
+const ach = pj => pj.milestones.length ? Math.round(100 * pj.milestones.filter(m => m.done).length / pj.milestones.length) : 0;
+const fmtWindow = pj => {
+  const s = `${MONTHS[monthOf(pj.launchStart)]} ${yearOf(pj)}`;
+  const e = `${MONTHS[monthOf(pj.launchEnd)]} ${+pj.launchEnd.slice(0,4)}`;
+  return s === e ? s : `${s} – ${e}`;
+};
+const inYear = pj => yearOf(pj) === state.year || +pj.launchEnd.slice(0,4) === state.year;
+const yearProjects = () => projects.filter(inYear);
+const onTime = pj => pj.actualLaunch && pj.actualLaunch <= pj.launchStart;
+
+function statusChip(st) {
+  const s = statusOf(st);
+  return `<span class="chip st-${st}"><span aria-hidden="true">${s.ico}</span>${s.label}</span>`;
+}
+
+function toast(msg) {
+  const t = $('#toast');
+  t.textContent = msg; t.style.display = 'block';
+  clearTimeout(t._h); t._h = setTimeout(() => t.style.display = 'none', 2200);
+}
+
+/* Tooltip */
+const tip = $('#tooltip');
+document.addEventListener('mousemove', e => {
+  if (tip.style.display !== 'block') return;
+  const x = Math.min(e.clientX + 14, innerWidth - tip.offsetWidth - 10);
+  const y = Math.min(e.clientY + 14, innerHeight - tip.offsetHeight - 10);
+  tip.style.left = x + 'px'; tip.style.top = y + 'px';
+});
+function bindTips(root) {
+  root.querySelectorAll('[data-tip]').forEach(el => {
+    el.addEventListener('mouseenter', () => { tip.innerHTML = el.dataset.tip; tip.style.display = 'block'; });
+    el.addEventListener('mouseleave', () => tip.style.display = 'none');
+  });
+}
+
+/* ---------------- Render: shell ---------------- */
+function renderYears() {
+  const years = [...new Set(projects.flatMap(pj => [yearOf(pj), +pj.launchEnd.slice(0,4)]))].sort((a,b) => b-a);
+  if (!years.includes(state.year)) state.year = years[0] ?? new Date().getFullYear();
+  $('#yearSel').innerHTML = years.map(y => `<option ${y===state.year?'selected':''}>${y}</option>`).join('');
+}
+
+function switchView(v) {
+  state.view = v;
+  document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('active', b.dataset.view === v));
+  document.querySelectorAll('.view').forEach(s => s.classList.toggle('active', s.id === 'view-' + v));
+  render();
+}
+
+/* ---------------- Render: dashboard ---------------- */
+function renderDashboard() {
+  const list = yearProjects();
+  const total = list.length;
+  const launched = list.filter(pj => ['launched','completed'].includes(pj.status)).length;
+  const completed = list.filter(pj => pj.status === 'completed').length;
+  const delayed = list.filter(pj => pj.status === 'delayed').length;
+  const avgAch = total ? Math.round(list.reduce((a, pj) => a + ach(pj), 0) / total) : 0;
+  const launchedList = list.filter(pj => pj.actualLaunch);
+  const onTimeRate = launchedList.length ? Math.round(100 * launchedList.filter(onTime).length / launchedList.length) : 0;
+
+  $('#dashTiles').innerHTML = [
+    tile('Total Projects', total, `${state.year} · all brands`),
+    tile('Launched', launched, total ? `${Math.round(100*launched/total)}% of plan` : '—'),
+    tile('Completed', completed, `<span class="up">✓</span> fully closed`),
+    tile('Avg Achievement', avgAch + '%', 'milestone completion'),
+    tile('On-Time Launch', onTimeRate + '%', launchedList.length ? `${launchedList.filter(onTime).length}/${launchedList.length} launches` : 'no launches yet'),
+    tile('Delayed', delayed, delayed ? `<span class="down">⚠</span> needs attention` : `<span class="up">✓</span> none`),
+  ].join('');
+
+  /* Projects by brand — stacked horizontal, segments = status */
+  const stCols = { planning:'var(--muted)', inprogress:'var(--accent)', launched:'var(--good)', completed:'var(--good-text)', delayed:'var(--critical)', onhold:'var(--serious)' };
+  const maxCount = Math.max(1, ...BRANDS.map(b => list.filter(pj => pj.brand === b.id).length));
+  $('#hbarSub').textContent = `Project count by status · ${state.year}`;
+  $('#hbarChart').innerHTML = BRANDS.map(b => {
+    const bl = list.filter(pj => pj.brand === b.id);
+    const segs = STATUSES.map(s => {
+      const n = bl.filter(pj => pj.status === s.id).length;
+      if (!n) return '';
+      return `<div class="hbar-seg" style="flex:${n};background:${stCols[s.id]}" data-tip="<b>${esc(b.name)}</b><br>${s.label}: ${n} project${n>1?'s':''}"></div>`;
+    }).join('');
+    return `<div class="hbar-row">
+      <div class="hbar-label"><span class="dot" style="background:${b.color}"></span>${esc(b.name)}</div>
+      <div style="width:${bl.length ? Math.max(8, 100*bl.length/maxCount) : 0}%"><div class="hbar-track">${segs || ''}</div></div>
+      <div class="hbar-total">${bl.length}</div>
+    </div>`;
+  }).join('');
+  $('#statusLegend').innerHTML = STATUSES.map(s =>
+    `<span class="li"><span class="sw" style="background:${stCols[s.id]}"></span>${s.label}</span>`).join('');
+
+  /* Launches by month — stacked: launched (solid) + planned (light) */
+  const perMonth = MONTHS.map((_, m) => {
+    const inM = list.filter(pj => yearOf(pj) === state.year && monthOf(pj.launchStart) === m);
+    return {
+      done: inM.filter(pj => pj.actualLaunch).length,
+      plan: inM.filter(pj => !pj.actualLaunch).length,
+    };
+  });
+  const maxM = Math.max(1, ...perMonth.map(x => x.done + x.plan));
+  $('#colSub').textContent = `Planned launch-start month · ${state.year}`;
+  $('#colChart').innerHTML = perMonth.map((x, m) => {
+    const hD = 100 * x.done / maxM, hP = 100 * x.plan / maxM;
+    const tipTxt = `<b>${MONTHS[m]} ${state.year}</b><br>Launched: ${x.done}<br>Planned: ${x.plan}`;
+    return `<div class="col" data-tip="${tipTxt}">
+      ${x.plan ? `<div class="seg ${x.done?'':'only'}" style="height:${hP}%;background:var(--seq-250)"></div>` : ''}
+      ${x.done ? `<div class="seg ${x.plan?'bottom':'only'}" style="height:${hD}%;background:var(--accent);${x.plan?'':'border-radius:4px 4px 0 0'}"></div>` : ''}
+    </div>`;
+  }).join('');
+  $('#colAxis').innerHTML = MONTHS.map(m => `<span>${m[0]}</span>`).join('');
+  $('#colLegend').innerHTML =
+    `<span class="li"><span class="sw" style="background:var(--accent)"></span>Launched</span>
+     <span class="li"><span class="sw" style="background:var(--seq-250)"></span>Planned / upcoming</span>`;
+
+  /* Brand cards */
+  $('#brandCards').innerHTML = BRANDS.map(b => {
+    const bl = list.filter(pj => pj.brand === b.id);
+    const bAch = bl.length ? Math.round(bl.reduce((a, pj) => a + ach(pj), 0) / bl.length) : 0;
+    const bDone = bl.filter(pj => pj.status === 'completed').length;
+    const bLive = bl.filter(pj => ['launched','completed'].includes(pj.status)).length;
+    return `<button class="brand-card" data-brand="${b.id}">
+      <div class="bc-top">
+        <span class="bc-swatch ${b.logo ? 'bc-swatch-img' : ''}" style="${b.logo ? '' : 'background:'+b.color}">
+          ${b.logo ? `<img src="${b.logo}" alt="${b.short}" onerror="this.parentNode.className='bc-swatch';this.parentNode.style.background='${b.color}';this.parentNode.textContent='${b.short}'">` : b.short}
+        </span>
+        <div><div class="bc-name">${esc(b.name)}</div><div class="bc-count">${bl.length} project${bl.length!==1?'s':''} in ${state.year}</div></div>
+      </div>
+      <div class="bc-stats">
+        <div class="bc-stat"><b>${bLive}</b><span>Launched</span></div>
+        <div class="bc-stat"><b>${bDone}</b><span>Complete</span></div>
+        <div class="bc-stat"><b>${bAch}%</b><span>Achieve</span></div>
+      </div>
+      <div class="bc-prog-label"><span>Avg milestone progress</span><b>${bAch}%</b></div>
+      <div class="prog"><i style="width:${bAch}%;background:${b.color}"></i></div>
+    </button>`;
+  }).join('');
+  document.querySelectorAll('#brandCards .brand-card').forEach(el =>
+    el.addEventListener('click', () => { state.brand = el.dataset.brand; switchView('brands'); }));
+  bindTips($('#view-dashboard'));
+}
+
+function tile(label, value, note) {
+  return `<div class="tile"><div class="t-label">${label}</div><div class="t-value">${value}</div><div class="t-note">${note}</div></div>`;
+}
+
+/* ---------------- Render: brands ---------------- */
+function renderBrands() {
+  $('#brandPills').innerHTML = BRANDS.map(b =>
+    `<button class="pill ${b.id===state.brand?'active':''}" data-brand="${b.id}">
+      <span class="dot" style="background:${b.color}"></span>${esc(b.name)}</button>`).join('');
+  document.querySelectorAll('#brandPills .pill').forEach(el =>
+    el.addEventListener('click', () => { state.brand = el.dataset.brand; renderBrands(); }));
+
+  const b = brandOf(state.brand);
+  const bl = yearProjects().filter(pj => pj.brand === b.id)
+    .sort((a, c) => a.launchStart.localeCompare(c.launchStart));
+  const bAch = bl.length ? Math.round(bl.reduce((a, pj) => a + ach(pj), 0) / bl.length) : 0;
+  const launchedList = bl.filter(pj => pj.actualLaunch);
+
+  $('#brandTiles').innerHTML = [
+    tile('Projects', bl.length, `${esc(b.name)} · ${state.year}`),
+    tile('Launched', bl.filter(pj => ['launched','completed'].includes(pj.status)).length, 'incl. completed'),
+    tile('Completed', bl.filter(pj => pj.status==='completed').length, 'fully closed'),
+    tile('Avg Achievement', bAch + '%', 'milestone completion'),
+    tile('On-Time', launchedList.length ? Math.round(100*launchedList.filter(onTime).length/launchedList.length) + '%' : '—', 'vs planned start'),
+  ].join('');
+
+  $('#brandProjects').innerHTML = bl.length ? bl.map(pj => projCard(pj, b)).join('')
+    : `<div class="empty" style="grid-column:1/-1">No projects for ${esc(b.name)} in ${state.year}. Click “＋ New Project” to add one.</div>`;
+
+  document.querySelectorAll('#brandProjects .ms-item').forEach(el =>
+    el.addEventListener('click', () => toggleMilestone(el.dataset.pj, +el.dataset.i)));
+  document.querySelectorAll('#brandProjects [data-edit]').forEach(el =>
+    el.addEventListener('click', () => openModal(el.dataset.edit)));
+}
+
+function projCard(pj, b) {
+  const a = ach(pj);
+  return `<div class="proj-card" style="--pc:${b.color}">
+    <div class="pc-head">
+      <div class="pc-title">${esc(pj.theme)}</div>
+      ${statusChip(pj.status)}
+    </div>
+    <div class="pc-desc">${esc(pj.description)}</div>
+    <div class="pc-meta">
+      <span>🗓 <b>${fmtWindow(pj)}</b></span>
+      <span>👤 <b>${esc(pj.owner)}</b></span>
+      ${pj.actualLaunch ? `<span>🚀 Launched <b>${MONTHS[monthOf(pj.actualLaunch)]} ${pj.actualLaunch.slice(0,4)}</b></span>` : ''}
+    </div>
+    <div class="prog"><i style="width:${a}%;background:${b.color}"></i></div>
+    <div class="ms-list">
+      ${pj.milestones.map((m, i) => `
+        <div class="ms-item ${m.done?'done':''}" data-pj="${pj.id}" data-i="${i}" role="checkbox" aria-checked="${m.done}" tabindex="0">
+          <span class="box">${m.done?'✓':''}</span><span class="ms-name">${esc(m.name)}</span>
+          ${m.dept ? `<span class="ms-dept">${esc(m.dept)}</span>` : ''}
+        </div>`).join('')}
+    </div>
+    ${imgStrip(pj)}
+    <div class="pc-foot">
+      <span class="pc-ach">Achievement ${a}%${a===100?' · <span style="color:var(--good-text)">✓ complete</span>':''}</span>
+      <button class="link-btn" data-edit="${pj.id}">Edit ›</button>
+    </div>
+  </div>`;
+}
+
+const IMG_STRIP_MAX = 5;
+function imgStrip(pj) {
+  const imgs = pj.images || [];
+  if (!imgs.length) return '';
+  const shown = imgs.slice(0, IMG_STRIP_MAX);
+  const extra = imgs.length - shown.length;
+  return `<div class="pc-imgs">
+    ${shown.map((im, i) => `<img src="${im.src}" alt="${esc(im.name || 'menu')}" loading="lazy" data-lb="${pj.id}" data-lbi="${i}">`).join('')}
+    ${extra > 0 ? `<span class="more" data-lb="${pj.id}" data-lbi="${IMG_STRIP_MAX}">+${extra}</span>` : ''}
+  </div>`;
+}
+
+/* ---------------- Lightbox ---------------- */
+const lb = { pj: null, i: 0 };
+function openLightbox(pjId, i) {
+  const pj = projects.find(x => x.id === pjId);
+  if (!pj || !(pj.images || []).length) return;
+  lb.pj = pj; lb.i = Math.min(i, pj.images.length - 1);
+  updateLightbox();
+  $('#lightbox').classList.add('open');
+}
+function updateLightbox() {
+  const im = lb.pj.images[lb.i];
+  $('#lbImg').src = im.src;
+  $('#lbCap').textContent = `${lb.pj.theme} — ${im.name || 'menu'} (${lb.i + 1}/${lb.pj.images.length})`;
+  const many = lb.pj.images.length > 1;
+  $('#lbPrev').style.display = many ? '' : 'none';
+  $('#lbNext').style.display = many ? '' : 'none';
+}
+function lbStep(d) { if (!lb.pj) return; const n = lb.pj.images.length; lb.i = (lb.i + d + n) % n; updateLightbox(); }
+function closeLightbox() { $('#lightbox').classList.remove('open'); $('#lbImg').src = ''; lb.pj = null; }
+$('#lbClose').addEventListener('click', closeLightbox);
+$('#lbPrev').addEventListener('click', e => { e.stopPropagation(); lbStep(-1); });
+$('#lbNext').addEventListener('click', e => { e.stopPropagation(); lbStep(1); });
+$('#lightbox').addEventListener('click', e => { if (e.target === e.currentTarget) closeLightbox(); });
+document.addEventListener('keydown', e => {
+  if (!$('#lightbox').classList.contains('open')) return;
+  if (e.key === 'Escape') closeLightbox();
+  if (e.key === 'ArrowLeft') lbStep(-1);
+  if (e.key === 'ArrowRight') lbStep(1);
+});
+document.addEventListener('click', e => {
+  const t = e.target.closest('[data-lb]');
+  if (t) openLightbox(t.dataset.lb, +t.dataset.lbi);
+});
+
+function toggleMilestone(id, i) {
+  const pj = projects.find(x => x.id === id);
+  if (!pj) return;
+  pj.milestones[i].done = !pj.milestones[i].done;
+  if (pj.milestones.every(m => m.done) && ['launched','inprogress'].includes(pj.status)) {
+    pj.status = 'completed';
+    toast(`“${pj.theme}” marked Completed 🎉`);
+  }
+  render();
+}
+
+/* ---------------- Render: timeline ---------------- */
+function brandSummaryText(bl) {
+  const live = bl.filter(pj => ['launched','completed'].includes(pj.status)).length;
+  const done = bl.filter(pj => pj.status === 'completed').length;
+  const late = bl.filter(pj => pj.status === 'delayed').length;
+  const avg = bl.length ? Math.round(bl.reduce((a, pj) => a + ach(pj), 0) / bl.length) : 0;
+  return `${bl.length} project${bl.length !== 1 ? 's' : ''} · ${live} launched · ${done} complete`
+    + (late ? ` · <span style="color:var(--critical);font-weight:700">${late} delayed</span>` : '')
+    + ` · avg ${avg}%`;
+}
+
+function renderTimeline() {
+  const all = yearProjects();
+
+  /* brand filter pills */
+  $('#tlPills').innerHTML =
+    `<button class="pill ${!state.timelineBrand ? 'active' : ''}" data-brand="">All brands</button>` +
+    BRANDS.map(b => {
+      const n = all.filter(pj => pj.brand === b.id).length;
+      return `<button class="pill ${b.id === state.timelineBrand ? 'active' : ''}" data-brand="${b.id}">
+        <span class="dot" style="background:${b.color}"></span>${esc(b.name)}${n ? ` (${n})` : ''}</button>`;
+    }).join('');
+  document.querySelectorAll('#tlPills .pill').forEach(el =>
+    el.addEventListener('click', () => { state.timelineBrand = el.dataset.brand; renderTimeline(); }));
+
+  const shownBrands = state.timelineBrand ? BRANDS.filter(b => b.id === state.timelineBrand) : BRANDS;
+  const list = state.timelineBrand ? all.filter(pj => pj.brand === state.timelineBrand) : all;
+
+  /* summary tiles for the selected brand (hidden in all-brands mode) */
+  if (state.timelineBrand) {
+    const b = brandOf(state.timelineBrand);
+    const launchedList = list.filter(pj => pj.actualLaunch);
+    const avg = list.length ? Math.round(list.reduce((a, pj) => a + ach(pj), 0) / list.length) : 0;
+    $('#tlBrandSummary').innerHTML = [
+      tile('Projects', list.length, `${esc(b.name)} · ${state.year}`),
+      tile('Launched', list.filter(pj => ['launched','completed'].includes(pj.status)).length, 'incl. completed'),
+      tile('Completed', list.filter(pj => pj.status === 'completed').length, 'fully closed'),
+      tile('Avg Achievement', avg + '%', 'milestone completion'),
+      tile('On-Time', launchedList.length ? Math.round(100 * launchedList.filter(onTime).length / launchedList.length) + '%' : '—', 'vs planned start'),
+    ].join('');
+  } else {
+    $('#tlBrandSummary').innerHTML = '';
+  }
+
+  $('#ganttSub').textContent = state.timelineBrand
+    ? `${brandOf(state.timelineBrand).name} · launch windows across ${state.year}`
+    : `Launch windows across ${state.year} · grouped by brand · colored bar = launch window`;
+  const now = new Date();
+  const showToday = now.getFullYear() === state.year;
+  const todayPct = 100 * (now.getMonth() + now.getDate()/31) / 12;
+
+  let html = `<div class="g-months"><span style="text-align:left">Project</span>${MONTHS.map(m => `<span>${m}</span>`).join('')}</div>`;
+  for (const b of shownBrands) {
+    const bl = list.filter(pj => pj.brand === b.id).sort((a,c) => a.launchStart.localeCompare(c.launchStart));
+    if (!bl.length) continue;
+    html += `<div class="g-brand-row">
+      <div class="g-brand-name"><span class="dot" style="background:${b.color}"></span>${esc(b.name)}</div>
+      <div class="g-brand-sum">${brandSummaryText(bl)}</div>
+    </div>`;
+    for (const pj of bl) {
+      let s = yearOf(pj) < state.year ? 0 : monthOf(pj.launchStart);
+      let e = +pj.launchEnd.slice(0,4) > state.year ? 11 : monthOf(pj.launchEnd);
+      const left = 100 * s / 12, width = 100 * (e - s + 1) / 12;
+      const st = statusOf(pj.status);
+      html += `<div class="g-row">
+        <div class="g-label"><span class="st-ico" title="${st.label}">${st.ico}</span>${esc(pj.theme)}</div>
+        <div class="g-bar-wrap">
+          <div class="g-cell-grid">${'<i></i>'.repeat(12)}</div>
+          <div class="g-bar" style="left:${left}%;width:calc(${width}% - 3px);background:${b.color}"
+               data-tip="<b>${esc(pj.theme)}</b><br>${esc(b.name)}<br>${fmtWindow(pj)} · ${st.label}<br>Owner: ${esc(pj.owner)} · Achievement ${ach(pj)}%">
+            <span class="gb-txt">${st.ico} ${ach(pj)}%</span>
+          </div>
+          ${showToday ? `<div class="g-today" style="left:${todayPct}%" title="Today"></div>` : ''}
+        </div>
+      </div>`;
+    }
+  }
+  $('#ganttBody').innerHTML = list.length ? html
+    : `<div class="empty">No projects in ${state.year}${state.timelineBrand ? ' for ' + esc(brandOf(state.timelineBrand).name) : ''}</div>`;
+  $('#ganttLegend').innerHTML = shownBrands.map(b =>
+    `<span class="li"><span class="sw" style="background:${b.color}"></span>${esc(b.name)}</span>`).join('')
+    + STATUSES.map(s => `<span class="li">${s.ico} ${s.label}</span>`).join('');
+  bindTips($('#view-timeline'));
+}
+
+/* ---------------- Render: projects table ---------------- */
+function renderProjects() {
+  const fb = $('#filterBrand'), fs = $('#filterStatus');
+  if (fb.options.length === 1) {
+    fb.innerHTML += BRANDS.map(b => `<option value="${b.id}">${esc(b.name)}</option>`).join('');
+    fs.innerHTML += STATUSES.map(s => `<option value="${s.id}">${s.label}</option>`).join('');
+  }
+  const q = state.search.toLowerCase();
+  const list = yearProjects()
+    .filter(pj => !state.filterBrand || pj.brand === state.filterBrand)
+    .filter(pj => !state.filterStatus || pj.status === state.filterStatus)
+    .filter(pj => !q || (pj.theme + pj.owner + pj.description).toLowerCase().includes(q))
+    .sort((a, c) => a.launchStart.localeCompare(c.launchStart));
+
+  $('#projTbody').innerHTML = list.length ? list.map(pj => {
+    const b = brandOf(pj.brand), a = ach(pj);
+    return `<tr>
+      <td><div class="t-theme">${esc(pj.theme)}</div><div class="t-desc">${esc(pj.description)}</div></td>
+      <td><span class="brand-chip"><span class="dot" style="background:${b.color}"></span>${esc(b.name)}</span></td>
+      <td style="white-space:nowrap">${fmtWindow(pj)}</td>
+      <td>${esc(pj.owner)}</td>
+      <td>${statusChip(pj.status)}</td>
+      <td><div class="ach-cell"><div class="prog"><i style="width:${a}%;background:${b.color}"></i></div><span>${a}%</span></div></td>
+      <td style="white-space:nowrap;text-align:right">
+        <button class="link-btn" data-edit="${pj.id}">Edit</button>
+      </td>
+    </tr>`;
+  }).join('') : `<tr><td colspan="7"><div class="empty">No projects match your filters.</div></td></tr>`;
+
+  document.querySelectorAll('#projTbody [data-edit]').forEach(el =>
+    el.addEventListener('click', () => openModal(el.dataset.edit)));
+}
+
+/* ---------------- Modal ---------------- */
+function openModal(id) {
+  state.editingId = id || null;
+  const pj = id ? projects.find(x => x.id === id) : null;
+  $('#modalTitle').textContent = pj ? 'Edit Project' : 'New Project';
+  $('#deleteBtn').style.display = pj ? '' : 'none';
+  $('#fBrand').innerHTML = BRANDS.map(b => `<option value="${b.id}" ${pj?.brand===b.id?'selected':''}>${esc(b.name)}</option>`).join('');
+  $('#fStatus').innerHTML = STATUSES.map(s => `<option value="${s.id}" ${pj?.status===s.id?'selected':''}>${s.ico} ${s.label}</option>`).join('');
+  if (!pj) { $('#fBrand').value = state.view === 'brands' ? state.brand : BRANDS[0].id; }
+  $('#fTheme').value = pj?.theme ?? '';
+  $('#fDesc').value = pj?.description ?? '';
+  $('#fOwner').value = pj?.owner ?? '';
+  $('#fStart').value = pj?.launchStart ?? `${state.year}-01`;
+  $('#fEnd').value = pj?.launchEnd ?? `${state.year}-01`;
+  $('#fActual').value = pj?.actualLaunch ?? '';
+  renderMsEdit(pj ? pj.milestones.map(m => ({...m})) : DEFAULT_MILESTONES.map(m => ({ ...m, done: false })));
+  renderImgEdit(pj ? (pj.images || []).map(im => ({...im})) : []);
+  $('#modalBg').classList.add('open');
+  $('#fTheme').focus();
+}
+
+let msDraft = [];
+function renderMsEdit(list) {
+  msDraft = list;
+  $('#msEdit').innerHTML = msDraft.map((m, i) => `
+    <div class="ms-edit-row">
+      <input type="checkbox" ${m.done?'checked':''} data-msdone="${i}" title="Done">
+      <input type="text" value="${esc(m.name)}" data-msname="${i}" placeholder="Milestone name">
+      <input type="text" class="ms-dept-input" value="${esc(m.dept ?? '')}" data-msdept="${i}" placeholder="Dept." list="deptList" title="Responsible department">
+      <button type="button" data-msdel="${i}" title="Remove">✕</button>
+    </div>`).join('');
+  $('#msEdit').querySelectorAll('[data-msdone]').forEach(el =>
+    el.addEventListener('change', () => msDraft[+el.dataset.msdone].done = el.checked));
+  $('#msEdit').querySelectorAll('[data-msname]').forEach(el =>
+    el.addEventListener('input', () => msDraft[+el.dataset.msname].name = el.value));
+  $('#msEdit').querySelectorAll('[data-msdept]').forEach(el =>
+    el.addEventListener('input', () => msDraft[+el.dataset.msdept].dept = el.value));
+  $('#msEdit').querySelectorAll('[data-msdel]').forEach(el =>
+    el.addEventListener('click', () => { msDraft.splice(+el.dataset.msdel, 1); renderMsEdit(msDraft); }));
+}
+
+/* ---- image editing in modal ---- */
+let imgDraft = [];
+function renderImgEdit(list) {
+  imgDraft = list;
+  $('#imgEdit').innerHTML = imgDraft.map((im, i) => `
+    <div class="img-thumb">
+      <img src="${im.src}" alt="${esc(im.name || 'menu')}" title="${esc(im.name || '')}">
+      <button type="button" data-imgdel="${i}" title="Remove">✕</button>
+    </div>`).join('');
+  $('#imgEdit').querySelectorAll('[data-imgdel]').forEach(el =>
+    el.addEventListener('click', () => { imgDraft.splice(+el.dataset.imgdel, 1); renderImgEdit(imgDraft); }));
+}
+$('#addImgBtn').addEventListener('click', () => $('#imgFile').click());
+$('#imgFile').addEventListener('change', async e => {
+  const files = [...e.target.files];
+  e.target.value = '';
+  for (const f of files) {
+    try { imgDraft.push({ name: f.name.replace(/\.[^.]+$/, ''), src: await fileToDataURL(f) }); }
+    catch { toast(`อ่านรูป “${f.name}” ไม่ได้`); }
+  }
+  renderImgEdit(imgDraft);
+});
+/* downscale to keep exports light: max 1000px, JPEG q0.82 (PNG kept if it stays small) */
+function fileToDataURL(file) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const MAX = 1000;
+      const scale = Math.min(1, MAX / Math.max(img.width, img.height));
+      const c = document.createElement('canvas');
+      c.width = Math.round(img.width * scale);
+      c.height = Math.round(img.height * scale);
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      resolve(c.toDataURL('image/jpeg', 0.82));
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('bad image')); };
+    img.src = url;
+  });
+}
+
+function closeModal() { $('#modalBg').classList.remove('open'); state.editingId = null; }
+
+$('#projForm').addEventListener('submit', e => {
+  e.preventDefault();
+  let start = $('#fStart').value, end = $('#fEnd').value;
+  if (end < start) end = start;
+  const data = {
+    brand: $('#fBrand').value,
+    theme: $('#fTheme').value.trim(),
+    description: $('#fDesc').value.trim(),
+    owner: $('#fOwner').value.trim(),
+    launchStart: start, launchEnd: end,
+    status: $('#fStatus').value,
+    actualLaunch: $('#fActual').value || null,
+    milestones: msDraft.filter(m => m.name.trim()),
+    images: imgDraft,
+  };
+  if (state.editingId) {
+    Object.assign(projects.find(x => x.id === state.editingId), data);
+    toast('Project updated');
+  } else {
+    projects.push({ id: 'pj' + Math.floor(1e9 * ((performance.now() % 1000) / 1000 + projects.length)), ...data });
+    toast('Project added');
+  }
+  state.year = +start.slice(0, 4);
+  closeModal(); renderYears(); render();
+});
+
+$('#deleteBtn').addEventListener('click', () => {
+  const pj = projects.find(x => x.id === state.editingId);
+  projects = projects.filter(x => x.id !== state.editingId);
+  toast(`Deleted “${pj?.theme}”`);
+  closeModal(); renderYears(); render();
+});
+
+$('#cancelBtn').addEventListener('click', closeModal);
+$('#modalBg').addEventListener('click', e => { if (e.target === e.currentTarget) closeModal(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#lightbox').classList.contains('open')) closeModal(); });
+$('#addMsBtn').addEventListener('click', () => { msDraft.push({ name: '', dept: '', done: false }); renderMsEdit(msDraft); });
+
+/* ---------------- Export / Import ---------------- */
+$('#exportBtn').addEventListener('click', () => {
+  const blob = new Blob([JSON.stringify({ app: 'fabfood-pd-kpi', version: 1, exported: new Date().toISOString(), projects }, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `pd-kpi-data-${new Date().toISOString().slice(0,10)}.json`;
+  a.click(); URL.revokeObjectURL(a.href);
+  toast('Data exported as JSON');
+});
+$('#importBtn').addEventListener('click', () => $('#importFile').click());
+$('#importFile').addEventListener('change', e => {
+  const f = e.target.files[0]; if (!f) return;
+  const r = new FileReader();
+  r.onload = () => {
+    try {
+      const d = JSON.parse(r.result);
+      const arr = Array.isArray(d) ? d : d.projects;
+      if (!Array.isArray(arr)) throw 0;
+      projects = arr.filter(x => x.brand && x.theme && x.launchStart).map(x => ({
+        id: x.id || 'pj' + Math.random().toString(36).slice(2),
+        brand: x.brand, theme: x.theme, description: x.description ?? '',
+        owner: x.owner ?? '', launchStart: x.launchStart,
+        launchEnd: x.launchEnd || x.launchStart,
+        status: STATUSES.some(s => s.id === x.status) ? x.status : 'planning',
+        actualLaunch: x.actualLaunch ?? null,
+        milestones: Array.isArray(x.milestones) ? x.milestones.map(m => ({ name: String(m.name ?? ''), dept: String(m.dept ?? ''), done: !!m.done })) : [],
+        images: Array.isArray(x.images) ? x.images.filter(im => typeof im?.src === 'string' && im.src.startsWith('data:image')).map(im => ({ name: String(im.name ?? ''), src: im.src })) : [],
+      }));
+      renderYears(); render();
+      toast(`Imported ${projects.length} projects`);
+    } catch { toast('Import failed — invalid JSON file'); }
+    e.target.value = '';
+  };
+  r.readAsText(f);
+});
+
+/* ---------------- Wire-up ---------------- */
+$('#tabs').addEventListener('click', e => { const b = e.target.closest('button'); if (b) switchView(b.dataset.view); });
+$('#yearSel').addEventListener('change', e => { state.year = +e.target.value; render(); });
+$('#newProjBtn').addEventListener('click', () => openModal(null));
+$('#searchInput').addEventListener('input', e => { state.search = e.target.value; renderProjects(); });
+$('#filterBrand').addEventListener('change', e => { state.filterBrand = e.target.value; renderProjects(); });
+$('#filterStatus').addEventListener('change', e => { state.filterStatus = e.target.value; renderProjects(); });
+$('#themeBtn').addEventListener('click', () => {
+  const cur = document.documentElement.dataset.theme;
+  document.documentElement.dataset.theme = cur === 'dark' ? 'light' : 'dark';
+});
+if (matchMedia('(prefers-color-scheme: dark)').matches) document.documentElement.dataset.theme = 'dark';
+
+function render() {
+  if (state.view === 'dashboard') renderDashboard();
+  else if (state.view === 'brands') renderBrands();
+  else if (state.view === 'timeline') renderTimeline();
+  else renderProjects();
+}
+renderYears();
+render();
+</script>
+</body>
+</html>
