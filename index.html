@@ -183,7 +183,102 @@
 
   .brand-dot{width:9px;height:9px;border-radius:50%;display:inline-block;margin-right:7px;vertical-align:middle}
   .help{font-size:12px;color:var(--mut2);margin-top:4px}
+  .link-btn{background:none;border:none;color:var(--blue);cursor:pointer;font-size:12px;font-weight:600;padding:2px 4px;border-radius:4px}
+  .link-btn:hover{text-decoration:underline}
   .kpi-good{color:var(--green)} .kpi-warn{color:var(--brand)} .kpi-bad{color:var(--red)}
+
+  /* ---- NPD KPI sub-tabs ---- */
+  .npd-tabs{display:flex;gap:2px;border-bottom:1px solid var(--line);margin-bottom:18px;overflow-x:auto;scrollbar-width:none}
+  .npd-tabs::-webkit-scrollbar{display:none}
+  .npd-tab{padding:8px 16px;font-size:12.5px;font-weight:600;color:var(--mut);border-bottom:2px solid transparent;white-space:nowrap;flex-shrink:0;border-radius:6px 6px 0 0}
+  .npd-tab:hover{color:var(--txt);background:var(--panel2)}
+  .npd-tab.active{color:var(--blue);border-bottom-color:var(--blue)}
+  .npd-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:16px}
+  .npd-tile{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:13px 15px}
+  .npd-tile .nt-lbl{font-size:10px;font-weight:700;color:var(--mut2);text-transform:uppercase;letter-spacing:.05em}
+  .npd-tile .nt-val{font-size:22px;font-weight:800;letter-spacing:-.02em;margin-top:3px;line-height:1.1}
+  .npd-tile .nt-sub{font-size:11px;color:var(--mut2);margin-top:3px}
+  .npd-charts{display:grid;grid-template-columns:1.2fr 1fr;gap:12px;margin-bottom:18px}
+  @media(max-width:820px){.npd-charts{grid-template-columns:1fr}}
+  .npd-card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px}
+  .npd-card-title{font-size:13px;font-weight:700;margin-bottom:2px}
+  .npd-card-sub{font-size:11px;color:var(--mut2);margin-bottom:12px}
+  /* horizontal bar chart */
+  .nhbar-row{display:grid;grid-template-columns:120px 1fr 28px;align-items:center;gap:8px;margin-bottom:8px}
+  .nhbar-lbl{font-size:11px;font-weight:600;color:var(--mut);display:flex;align-items:center;gap:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .nhbar-track{height:16px;display:flex;gap:1px;border-radius:4px;overflow:hidden}
+  .nhbar-seg{min-width:3px}
+  .nhbar-total{font-size:11px;font-weight:700;color:var(--mut);text-align:right}
+  /* monthly column chart */
+  .npd-col-wrap{display:grid;grid-template-columns:repeat(12,1fr);gap:4px;align-items:end;height:120px;padding-top:4px}
+  .npd-col{display:flex;flex-direction:column;justify-content:flex-end;height:100%}
+  .npd-col .seg{border-radius:3px 3px 0 0;min-height:0;transition:opacity .15s}
+  .npd-col:hover .seg{opacity:.65}
+  .npd-col-axis{display:grid;grid-template-columns:repeat(12,1fr);gap:4px;margin-top:4px;border-top:1px solid var(--line2);padding-top:4px}
+  .npd-col-axis span{font-size:9px;color:var(--mut2);text-align:center}
+  /* brand cards */
+  .npd-brand-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;margin-bottom:18px}
+  .npd-brand-card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px;cursor:pointer;transition:border-color .15s,transform .1s;text-align:left;width:100%;border-top:3px solid var(--pc,var(--blue))}
+  .npd-brand-card:hover{border-color:var(--mut);transform:translateY(-1px)}
+  .nbc-top{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+  .nbc-swatch{width:32px;height:32px;border-radius:9px;flex:none;display:grid;place-items:center;font-size:10px;font-weight:800;overflow:hidden}
+  .nbc-swatch img{width:100%;height:100%;object-fit:contain;background:#fff;border-radius:7px;padding:2px}
+  .nbc-name{font-size:13px;font-weight:700;line-height:1.2}
+  .nbc-count{font-size:10px;color:var(--mut2)}
+  .nbc-stats{display:flex;gap:12px;margin-bottom:8px}
+  .nbc-stat b{display:block;font-size:14px;font-weight:750}
+  .nbc-stat span{font-size:9px;color:var(--mut2);text-transform:uppercase;letter-spacing:.04em}
+  /* project cards */
+  .npd-proj-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px}
+  .npd-proj-card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px;border-top:3px solid var(--pc,var(--blue))}
+  .npc-head{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:5px}
+  .npc-title{font-size:13px;font-weight:700;line-height:1.25}
+  .npc-desc{font-size:11px;color:var(--mut);line-height:1.45;margin:5px 0 8px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .npc-meta{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:11px;color:var(--mut2);margin-bottom:10px}
+  .npc-meta b{color:var(--mut);font-weight:600}
+  .npd-prog{height:5px;background:var(--line);border-radius:3px;overflow:hidden;margin:6px 0}
+  .npd-prog i{display:block;height:100%;border-radius:3px;transition:width .4s ease}
+  .npd-ms-list{display:flex;flex-direction:column;gap:3px;margin-top:8px}
+  .npd-ms-item{display:flex;align-items:center;gap:7px;font-size:11px;color:var(--mut);padding:2px 5px;border-radius:5px;cursor:pointer;user-select:none}
+  .npd-ms-item:hover{background:var(--panel2)}
+  .npd-ms-item .mbox{width:13px;height:13px;border:1.5px solid var(--line2);border-radius:3px;flex:none;display:grid;place-items:center;font-size:9px}
+  .npd-ms-item.done .mbox{background:var(--green);border-color:var(--green);color:#fff}
+  .npd-ms-item.done{color:var(--mut2)}
+  .npd-ms-item.done .mname{text-decoration:line-through}
+  .npd-ms-item .mname{flex:1;min-width:0}
+  .npd-ms-dept{flex:none;font-size:9px;font-weight:700;color:var(--mut2);background:var(--panel2);border-radius:999px;padding:1px 6px;white-space:nowrap}
+  .npd-foot{display:flex;align-items:center;justify-content:space-between;margin-top:10px;padding-top:8px;border-top:1px solid var(--line)}
+  /* status chips for NPD */
+  .nchip{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:999px;font-size:10px;font-weight:700;white-space:nowrap}
+  .nchip.planning{color:var(--mut);background:rgba(137,135,129,.14)}
+  .nchip.inprogress{color:var(--blue);background:rgba(76,141,255,.14)}
+  .nchip.launched{color:var(--green);background:rgba(39,192,147,.14)}
+  .nchip.completed{color:#fff;background:var(--green)}
+  .nchip.delayed{color:var(--red);background:rgba(245,84,78,.14)}
+  .nchip.onhold{color:var(--brand);background:rgba(240,165,0,.14)}
+  /* NPD legend */
+  .npd-legend{display:flex;flex-wrap:wrap;gap:8px 14px;margin-top:12px;padding-top:10px;border-top:1px solid var(--line);font-size:11px;color:var(--mut2)}
+  .npd-legend .li{display:inline-flex;align-items:center;gap:5px}
+  .npd-legend .sw{width:9px;height:9px;border-radius:2px;flex:none}
+  /* NPD projects table */
+  .npd-tbl-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:12px}
+  .npd-tbl-wrap table{width:100%;border-collapse:collapse;min-width:800px}
+  .npd-tbl-wrap th{text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--mut2);padding:10px 12px;border-bottom:1px solid var(--line)}
+  .npd-tbl-wrap td{padding:10px 12px;font-size:12px;border-bottom:1px solid var(--line);vertical-align:middle}
+  .npd-tbl-wrap tr:last-child td{border-bottom:none}
+  .npd-tbl-wrap tbody tr:hover{background:var(--panel2)}
+  /* NPD toolbar */
+  .npd-toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+  .npd-search{flex:1;min-width:160px;display:flex;align-items:center;gap:7px;border:1px solid var(--line);background:var(--panel);border-radius:9px;padding:6px 10px}
+  .npd-search input{border:none;outline:none;background:transparent;width:100%;font-size:13px;color:var(--txt)}
+  .npd-toolbar select{border:1px solid var(--line);background:var(--panel);color:var(--txt);border-radius:9px;padding:6px 9px;font-size:12px;font-weight:600;outline:none;cursor:pointer}
+  /* NPD brand pills */
+  .npd-pills{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:12px;overflow-x:auto;scrollbar-width:none}
+  .npd-pills::-webkit-scrollbar{display:none}
+  .npd-pill{padding:5px 12px;border-radius:999px;border:1px solid var(--line);background:var(--panel);font-size:11px;font-weight:600;color:var(--mut);display:inline-flex;align-items:center;gap:5px;flex-shrink:0}
+  .npd-pill:hover{border-color:var(--mut);color:var(--txt)}
+  .npd-pill.active{background:var(--txt);color:var(--bg);border-color:var(--txt)}
+  .npd-dot{width:7px;height:7px;border-radius:50%}
 
   /* ---- Timeline / Gantt ---- */
   .tl-filter{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
@@ -239,7 +334,9 @@
 <div class="app">
   <aside class="sidebar" id="sidebar">
     <div class="logo">
-      <div class="mark">FAB</div>
+      <div class="mark" style="background:transparent;padding:0;overflow:hidden;box-shadow:none">
+        <img src="logos/Screenshot 2026-06-18 171134.png" alt="FAB" style="width:38px;height:38px;object-fit:cover;border-radius:10px" onerror="this.outerHTML='<span style=font-size:11px;font-weight:900;color:#fff>FAB</span>'">
+      </div>
       <div><b>FAB · RD Food Chain</b><span>FOOD COST SYSTEM</span></div>
     </div>
     <div class="nav-label">เมนูหลัก</div>
@@ -284,7 +381,7 @@ const BRANDS = [
   { id:"sfhs",  name:"Santa Fe Happy Steak",  short:"Santa Fe Happy Steak", color:"#e23b3b", logo:"logos/santafe-happy.png" },
   { id:"sfe",   name:"SantaFe Easy",          short:"SantaFe Easy",         color:"#f0732a", logo:"logos/santafe-easy.jpg" },
   { id:"jd",    name:"Jae Dang",              short:"Jae Dang",             color:"#e6a019", logo:"logos/jaedang.jpg" },
-  { id:"jdkt",  name:"Jae Dang Jumnua (KT)",  short:"Jae Dang Jumnua (KT)", color:"#d4b106", logo:null },
+  { id:"jdkt",  name:"Jae Dang Jumnua (KT)",  short:"Jae Dang Jumnua (KT)", color:"#d4b106", logo:"logos/jaedang-kt.jpg" },
   { id:"yama",  name:"Yamachan",              short:"Yamachan",             color:"#2f9e44", logo:"logos/yamachan.jpg" },
   { id:"uchi",  name:"Uchidaya",              short:"Uchidaya",             color:"#0ca678", logo:"logos/messageImage_1781777321922.jpg" },
   { id:"tsr",   name:"Top Secret Ramen",      short:"Top Secret Ramen",     color:"#4263eb", logo:"logos/Top secret ramen.jpg" },
@@ -311,6 +408,7 @@ function blankData(){
     boms:[],        // BOM / Set BOM
     menus:[],       // Food Cost
     projects:[],    // Project
+    npd:[],         // NPD KPI projects (Timeline module)
   };
 }
 let DATA = load();
@@ -1065,138 +1163,413 @@ function editProject(id){
 }
 
 /* =========================================================================
-   VIEW: TIMELINE (Gantt)
+   VIEW: TIMELINE (KPI Tracker - NPD Dashboard)
+   Sub-tabs: dashboard | brands | gantt | projects
    ========================================================================= */
-const TL_MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-const STATUS_ICO = {"กำลังพัฒนา":"🔄","อนุมัติแล้ว":"✅","พัก":"⏸","ยกเลิก":"❌"};
+const NPD_MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const NPD_STATUSES = [
+  { id:"planning",   label:"Planning",    ico:"⏳" },
+  { id:"inprogress", label:"In Progress", ico:"🔄" },
+  { id:"launched",   label:"Launched",    ico:"🚀" },
+  { id:"completed",  label:"Completed",   ico:"✅" },
+  { id:"delayed",    label:"Delayed",     ico:"⚠️" },
+  { id:"onhold",     label:"On Hold",     ico:"⏸" },
+];
+const NPD_DEFAULT_MS = [
+  { name:"Concept & theme approved", dept:"R&D" },
+  { name:"Recipe development",       dept:"R&D" },
+  { name:"Internal tasting",         dept:"QA/R&D" },
+  { name:"Costing approved",         dept:"Finance" },
+  { name:"Marketing materials",      dept:"Marketing" },
+  { name:"Store rollout / launch",   dept:"Operations" },
+];
+const NPD_ST_COLS = {
+  planning:"var(--mut2)", inprogress:"var(--blue)", launched:"var(--green)",
+  completed:"#006300", delayed:"var(--red)", onhold:"var(--brand)"
+};
 
-let tlBrand = "";  // "" = all brands
+let npdSub = "dashboard";
+let npdYear = new Date().getFullYear();
+let npdBrand = "";
+let npdSearch = "";
+let npdFStatus = "";
+let npdEditBrand = BRANDS[0].id;
+
+function npdYearProjects(){
+  return (DATA.npd||[]).filter(p=>{
+    const sy = +p.launchStart.slice(0,4);
+    const ey = +( p.launchEnd||p.launchStart ).slice(0,4);
+    return sy<=npdYear && ey>=npdYear;
+  });
+}
+function npdAch(p){ return p.milestones&&p.milestones.length ? Math.round(100*p.milestones.filter(m=>m.done).length/p.milestones.length) : 0; }
+function npdBrandOf(id){ return BRANDS.find(b=>b.id===id)||BRANDS[0]; }
+function npdStatusOf(id){ return NPD_STATUSES.find(s=>s.id===id)||NPD_STATUSES[0]; }
+function npdFmtWin(p){
+  const sm = +p.launchStart.slice(5,7)-1, sy = +p.launchStart.slice(0,4);
+  const em = +(p.launchEnd||p.launchStart).slice(5,7)-1, ey = +(p.launchEnd||p.launchStart).slice(0,4);
+  const s = NPD_MONTHS[sm]+" "+sy;
+  const e = NPD_MONTHS[em]+" "+ey;
+  return s===e ? s : s+" → "+e;
+}
+function npdOnTime(p){ return p.actualLaunch && p.actualLaunch<=p.launchStart; }
+
+function npdStatusChip(st){
+  const s=npdStatusOf(st);
+  return `<span class="nchip ${st}">${s.ico} ${s.label}</span>`;
+}
 
 function viewTimeline(){
-  const now = new Date();
-  const curYear = now.getFullYear();
-  // collect years from projects that have dates
-  const allProj = DATA.projects.filter(p => p.startDate);
-  const years = [...new Set(allProj.flatMap(p => [
-    +p.startDate.slice(0,4),
-    +( p.endDate||p.startDate ).slice(0,4)
-  ]))].sort((a,b)=>a-b);
-  if(!years.includes(curYear)) years.push(curYear);
-  years.sort((a,b)=>a-b);
+  const tabs=[
+    {id:"dashboard",label:"📊 Dashboard"},
+    {id:"brands",   label:"🏪 Brands"},
+    {id:"gantt",    label:"📅 Gantt"},
+    {id:"projects", label:"📋 Projects"},
+  ];
+  const tabsHtml = `<div class="npd-tabs">
+    ${tabs.map(t=>`<button class="npd-tab ${t.id===npdSub?'active':''}" onclick="npdSub='${t.id}';render()">${t.label}</button>`).join('')}
+    <div style="flex:1"></div>
+    <select style="background:var(--panel);border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:4px 8px;font-size:11px;font-weight:700;margin-bottom:4px;align-self:flex-end" onchange="npdYear=+this.value;render()">
+      ${[...new Set((DATA.npd||[]).flatMap(p=>[+p.launchStart.slice(0,4),+(p.launchEnd||p.launchStart).slice(0,4)]).concat([new Date().getFullYear()]))].sort().map(y=>`<option value="${y}" ${y===npdYear?'selected':''}>${y}</option>`).join('')}
+    </select>
+    <button class="btn primary" style="font-size:12px;padding:5px 12px;margin-bottom:4px" onclick="openNpdModal(null)">＋ เพิ่มโปรเจกต์</button>
+  </div>`;
 
-  // pick year from state or current
-  if(!window.tlYear) window.tlYear = curYear;
-  const year = window.tlYear;
+  let body = "";
+  if(npdSub==="dashboard") body = npdDashboard();
+  else if(npdSub==="brands") body = npdBrandsView();
+  else if(npdSub==="gantt") body = npdGanttView();
+  else body = npdProjectsView();
 
-  // filter projects for this year
-  const inYear = p => {
-    if(!p.startDate) return false;
-    const s = +p.startDate.slice(0,4);
-    const e = +( p.endDate||p.startDate ).slice(0,4);
-    return s <= year && e >= year;
-  };
-  const list = allProj.filter(inYear).filter(p => !tlBrand || p.brandId === tlBrand);
-  const allList = allProj.filter(inYear);
+  return tabsHtml + body;
+}
 
-  // summary stats
-  const total = allList.length;
-  const withDates = DATA.projects.filter(p=>p.startDate).length;
-  const noDates = DATA.projects.length - withDates;
+function npdDashboard(){
+  const list = npdYearProjects();
+  const total = list.length;
+  const launched = list.filter(p=>["launched","completed"].includes(p.status)).length;
+  const completed = list.filter(p=>p.status==="completed").length;
+  const delayed = list.filter(p=>p.status==="delayed").length;
+  const avgAch = total ? Math.round(list.reduce((a,p)=>a+npdAch(p),0)/total) : 0;
+  const llist = list.filter(p=>p.actualLaunch);
+  const onTime = llist.length ? Math.round(100*llist.filter(npdOnTime).length/llist.length) : 0;
 
-  // brand pills
-  const pillsHtml = `
-    <div class="tl-filter">
-      <button class="tl-pill ${!tlBrand?'active':''}" onclick="tlBrand='';render()">ทุกแบรนด์</button>
+  const tiles = `<div class="npd-tiles">
+    ${npdTile("Total Projects", total, npdYear+" · all brands")}
+    ${npdTile("Launched", launched, total?Math.round(100*launched/total)+"%  of plan":"—")}
+    ${npdTile("Completed", completed, "✅ fully closed")}
+    ${npdTile("Avg Achievement", avgAch+"%", "milestone completion")}
+    ${npdTile("On-Time Launch", onTime+"%", llist.length?llist.filter(npdOnTime).length+"/"+llist.length+" launches":"no launches yet")}
+    ${npdTile("Delayed", delayed, delayed?"⚠️ needs attention":"✅ none")}
+  </div>`;
+
+  // Brand bar chart
+  const maxCount = Math.max(1,...BRANDS.map(b=>list.filter(p=>p.brand===b.id).length));
+  const barChart = `<div class="npd-card">
+    <div class="npd-card-title">Projects by Brand</div>
+    <div class="npd-card-sub">Project count by status · ${npdYear}</div>
+    ${BRANDS.map(b=>{
+      const bl = list.filter(p=>p.brand===b.id);
+      const segs = NPD_STATUSES.map(s=>{
+        const n=bl.filter(p=>p.status===s.id).length; if(!n) return "";
+        return `<div class="nhbar-seg" style="flex:${n};background:${NPD_ST_COLS[s.id]}" title="${b.name}: ${s.label} ${n}"></div>`;
+      }).join("");
+      return `<div class="nhbar-row">
+        <div class="nhbar-lbl"><span class="npd-dot" style="background:${b.color}"></span>${esc(b.short.split(' ')[0])}</div>
+        <div style="width:${bl.length?Math.max(8,100*bl.length/maxCount):0}%"><div class="nhbar-track" style="border-radius:4px">${segs||'<div style="height:16px;background:var(--line2);border-radius:4px;width:100%"></div>'}</div></div>
+        <div class="nhbar-total">${bl.length}</div>
+      </div>`;
+    }).join("")}
+    <div class="npd-legend">
+      ${NPD_STATUSES.map(s=>`<span class="li"><span class="sw" style="background:${NPD_ST_COLS[s.id]}"></span>${s.label}</span>`).join('')}
+    </div>
+  </div>`;
+
+  // Monthly column chart
+  const perMonth = NPD_MONTHS.map((_,m)=>{
+    const inM = list.filter(p=>+p.launchStart.slice(0,4)===npdYear && +p.launchStart.slice(5,7)-1===m);
+    return { done:inM.filter(p=>p.actualLaunch).length, plan:inM.filter(p=>!p.actualLaunch).length };
+  });
+  const maxM = Math.max(1,...perMonth.map(x=>x.done+x.plan));
+  const colChart = `<div class="npd-card">
+    <div class="npd-card-title">Launch Schedule by Month</div>
+    <div class="npd-card-sub">Planned launch-start month · ${npdYear}</div>
+    <div class="npd-col-wrap">
+      ${perMonth.map((x,m)=>{
+        const hD=100*x.done/maxM, hP=100*x.plan/maxM;
+        return `<div class="npd-col" title="${NPD_MONTHS[m]} ${npdYear}: ${x.done+x.plan} projects">
+          ${x.plan?`<div class="seg" style="height:${hP}%;background:var(--mut2)"></div>`:''}
+          ${x.done?`<div class="seg" style="height:${hD}%;background:var(--blue)"></div>`:''}
+        </div>`;
+      }).join('')}
+    </div>
+    <div class="npd-col-axis">${NPD_MONTHS.map(m=>`<span>${m[0]}</span>`).join('')}</div>
+    <div class="npd-legend">
+      <span class="li"><span class="sw" style="background:var(--blue)"></span>Launched</span>
+      <span class="li"><span class="sw" style="background:var(--mut2)"></span>Planned</span>
+    </div>
+  </div>`;
+
+  // Brand overview cards
+  const brandCards = `<div style="margin-top:16px">
+    <div class="section-title"><h2>Brand Overview</h2><span class="count" style="font-size:11px">คลิกเพื่อดูรายละเอียด</span></div>
+    <div class="npd-brand-grid">
       ${BRANDS.map(b=>{
-        const n = allList.filter(p=>p.brandId===b.id).length;
-        return `<button class="tl-pill ${b.id===tlBrand?'active':''}" onclick="tlBrand='${b.id}';render()">
-          <span class="dot" style="background:${b.color}"></span>${esc(b.short)} ${n?`(${n})`:''}
+        const bl = list.filter(p=>p.brand===b.id);
+        const bAch = bl.length ? Math.round(bl.reduce((a,p)=>a+npdAch(p),0)/bl.length) : 0;
+        const bLive = bl.filter(p=>["launched","completed"].includes(p.status)).length;
+        const bDone = bl.filter(p=>p.status==="completed").length;
+        return `<button class="npd-brand-card" style="--pc:${b.color}" onclick="npdSub='brands';npdBrand='${b.id}';render()">
+          <div class="nbc-top">
+            <span class="nbc-swatch" style="${b.logo?'':'background:'+b.color}">
+              ${b.logo?`<img src="${b.logo}" alt="${esc(b.short)}" onerror="this.parentNode.style.background='${b.color}';this.remove()">`:`<span style="color:#fff;font-size:9px;font-weight:800">${esc(b.short.slice(0,2).toUpperCase())}</span>`}
+            </span>
+            <div><div class="nbc-name">${esc(b.name)}</div><div class="nbc-count">${bl.length} project${bl.length!==1?'s':''} · ${npdYear}</div></div>
+          </div>
+          <div class="nbc-stats">
+            <div class="nbc-stat"><b>${bLive}</b><span>Launched</span></div>
+            <div class="nbc-stat"><b>${bDone}</b><span>Done</span></div>
+            <div class="nbc-stat"><b>${bAch}%</b><span>Achieve</span></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--mut2);margin-bottom:4px"><span>Achievement</span><b>${bAch}%</b></div>
+          <div class="npd-prog"><i style="width:${bAch}%;background:${b.color}"></i></div>
         </button>`;
       }).join('')}
-      <div style="flex:1"></div>
-      <select style="background:var(--panel);border:1px solid var(--line2);color:var(--txt);border-radius:8px;padding:5px 10px;font-size:12px;font-weight:700"
-        onchange="window.tlYear=+this.value;render()">
-        ${years.map(y=>`<option value="${y}" ${y===year?'selected':''}>${y}</option>`).join('')}
-      </select>
-    </div>`;
-
-  // tiles
-  const tilesHtml = `<div class="tl-tiles">
-    ${kpiTile("โปรเจกต์ทั้งหมด", total, `ในปี ${year}`)}
-    ${kpiTile("กำลังพัฒนา", list.filter(p=>p.status==="กำลังพัฒนา").length, "🔄 active")}
-    ${kpiTile("อนุมัติแล้ว",  list.filter(p=>p.status==="อนุมัติแล้ว").length, "✅ approved")}
-    ${kpiTile("ยังไม่มีวันที่", noDates, "ตั้งค่าได้ที่ Project")}
+    </div>
   </div>`;
 
-  // Gantt body
-  const shownBrands = tlBrand ? BRANDS.filter(b=>b.id===tlBrand) : BRANDS;
-  const showToday = now.getFullYear()===year;
-  const todayPct = 100*(now.getMonth() + now.getDate()/31)/12;
+  return tiles + `<div class="npd-charts">${barChart}${colChart}</div>` + brandCards;
+}
 
-  let ganttHtml = `<div class="g-header">
-    <span>โปรเจกต์</span>
-    ${TL_MONTHS.map(m=>`<span>${m}</span>`).join('')}
+function npdTile(label, value, note){
+  return `<div class="npd-tile"><div class="nt-lbl">${label}</div><div class="nt-val">${value}</div><div class="nt-sub">${note}</div></div>`;
+}
+
+function npdProjCard(p){
+  const b = npdBrandOf(p.brand);
+  const a = npdAch(p);
+  return `<div class="npd-proj-card" style="--pc:${b.color}">
+    <div class="npc-head">
+      <div class="npc-title">${esc(p.theme)}</div>
+      ${npdStatusChip(p.status)}
+    </div>
+    <div class="npc-desc">${esc(p.description)}</div>
+    <div class="npc-meta">
+      <span>📅 <b>${npdFmtWin(p)}</b></span>
+      <span>👤 <b>${esc(p.owner||"—")}</b></span>
+      ${p.actualLaunch?`<span>🚀 <b>${NPD_MONTHS[+p.actualLaunch.slice(5,7)-1]} ${p.actualLaunch.slice(0,4)}</b></span>`:""}
+    </div>
+    <div class="npd-prog"><i style="width:${a}%;background:${b.color}"></i></div>
+    <div class="npd-ms-list">
+      ${(p.milestones||[]).map((m,i)=>`
+        <div class="npd-ms-item ${m.done?'done':''}" onclick="npdToggleMs('${p.id}',${i})" role="checkbox" aria-checked="${m.done}">
+          <span class="mbox">${m.done?'✓':''}</span>
+          <span class="mname">${esc(m.name)}</span>
+          ${m.dept?`<span class="npd-ms-dept">${esc(m.dept)}</span>`:''}
+        </div>`).join('')}
+    </div>
+    <div class="npd-foot">
+      <span style="font-size:11px;font-weight:700;color:var(--mut)">Achievement ${a}%${a===100?' · <span style="color:var(--green)">✅ complete</span>':''}</span>
+      <button class="link-btn" onclick="openNpdModal('${p.id}')">Edit ›</button>
+    </div>
+  </div>`;
+}
+
+function npdBrandsView(){
+  const all = npdYearProjects();
+  const pills = `<div class="npd-pills">
+    <button class="npd-pill ${!npdBrand?'active':''}" onclick="npdBrand='';render()">ทุกแบรนด์</button>
+    ${BRANDS.map(b=>{
+      const n=all.filter(p=>p.brand===b.id).length;
+      return `<button class="npd-pill ${b.id===npdBrand?'active':''}" onclick="npdBrand='${b.id}';render()">
+        <span class="npd-dot" style="background:${b.color}"></span>${esc(b.short.split(' ')[0])}${n?` (${n})`:''}
+      </button>`;
+    }).join('')}
   </div>`;
 
-  let hasAny = false;
+  const list = npdBrand ? all.filter(p=>p.brand===npdBrand) : all;
+  const proj = `<div class="npd-proj-grid">
+    ${list.length ? list.sort((a,c)=>a.launchStart.localeCompare(c.launchStart)).map(npdProjCard).join('') :
+      `<div class="empty" style="grid-column:1/-1"><div class="big">🗂️</div>ไม่มีโปรเจกต์ในปี ${npdYear}${npdBrand?" สำหรับแบรนด์นี้":""} — กด ＋ เพิ่มโปรเจกต์</div>`}
+  </div>`;
+
+  return pills + proj;
+}
+
+function npdGanttView(){
+  const all = npdYearProjects();
+  const pills = `<div class="npd-pills">
+    <button class="npd-pill ${!npdBrand?'active':''}" onclick="npdBrand='';render()">ทุกแบรนด์</button>
+    ${BRANDS.map(b=>{
+      const n=all.filter(p=>p.brand===b.id).length;
+      return `<button class="npd-pill ${b.id===npdBrand?'active':''}" onclick="npdBrand='${b.id}';render()">
+        <span class="npd-dot" style="background:${b.color}"></span>${esc(b.short.split(' ')[0])}${n?` (${n})`:''}
+      </button>`;
+    }).join('')}
+  </div>`;
+
+  const shownBrands = npdBrand ? BRANDS.filter(b=>b.id===npdBrand) : BRANDS;
+  const list = npdBrand ? all.filter(p=>p.brand===npdBrand) : all;
+  const now = new Date();
+  const showToday = now.getFullYear()===npdYear;
+  const todayPct = 100*(now.getMonth()+now.getDate()/31)/12;
+
+  let gantt = `<div class="g-header"><span style="text-align:left">โปรเจกต์</span>${NPD_MONTHS.map(m=>`<span>${m}</span>`).join('')}</div>`;
+  let hasAny=false;
   for(const b of shownBrands){
-    const bl = list.filter(p=>p.brandId===b.id).sort((a,c)=>a.startDate.localeCompare(c.startDate));
+    const bl = list.filter(p=>p.brand===b.id).sort((a,c)=>a.launchStart.localeCompare(c.launchStart));
     if(!bl.length) continue;
-    hasAny = true;
-    ganttHtml += `<div class="g-brand-sep"><span class="dot" style="background:${b.color}"></span>${esc(b.short)}</div>`;
+    hasAny=true;
+    const lList=bl.filter(p=>p.actualLaunch), avg=bl.length?Math.round(bl.reduce((a,p)=>a+npdAch(p),0)/bl.length):0;
+    gantt += `<div class="g-brand-sep"><span class="npd-dot" style="background:${b.color}"></span>${esc(b.short)} <span style="font-weight:400;color:var(--mut2)">· ${bl.length} projects · avg ${avg}%</span></div>`;
     for(const p of bl){
-      const s = +p.startDate.slice(0,4)<year ? 0 : +p.startDate.slice(5,7)-1;
-      const eRaw = p.endDate||p.startDate;
-      const e = +eRaw.slice(0,4)>year ? 11 : +eRaw.slice(5,7)-1;
-      const left = 100*s/12, width = 100*(e-s+1)/12;
-      const ico = STATUS_ICO[p.status]||"🔵";
-      ganttHtml += `<div class="g-row">
-        <div class="g-label"><span class="st">${ico}</span>${esc(p.name)}</div>
+      const s = +p.launchStart.slice(0,4)<npdYear ? 0 : +p.launchStart.slice(5,7)-1;
+      const eRaw = p.launchEnd||p.launchStart;
+      const e = +eRaw.slice(0,4)>npdYear ? 11 : +eRaw.slice(5,7)-1;
+      const left=100*s/12, width=100*(e-s+1)/12;
+      const st=npdStatusOf(p.status);
+      const a=npdAch(p);
+      gantt += `<div class="g-row">
+        <div class="g-label"><span class="st">${st.ico}</span>${esc(p.theme)}</div>
         <div class="g-cells">
           <div class="g-grid">${'<i></i>'.repeat(12)}</div>
           <div class="g-bar" style="left:${left}%;width:calc(${width}% - 3px);background:${b.color}"
-            title="${esc(p.name)} · ${esc(p.startDate||'')} → ${esc(p.endDate||'')} · ${esc(p.status)}">
-            ${esc(p.code||p.name)}
+            title="${esc(p.theme)} · ${npdFmtWin(p)} · ${st.label} · Achievement ${a}%">
+            ${st.ico} ${a}%
           </div>
-          ${showToday?`<div class="g-today" style="left:${todayPct}%" title="วันนี้"></div>`:''}
+          ${showToday?`<div class="g-today" style="left:${todayPct}%"></div>`:''}
         </div>
       </div>`;
     }
   }
+  if(!hasAny) gantt += `<div class="tl-empty">ไม่มีโปรเจกต์ที่มีวันที่ในปี ${npdYear} — กด ＋ เพิ่มโปรเจกต์</div>`;
 
-  if(!hasAny){
-    ganttHtml += `<div class="tl-empty">ไม่มีโปรเจกต์ที่มีวันที่ในปี ${year}${tlBrand?' สำหรับแบรนด์นี้':''}<br>
-      <small>ไปที่ <b>Project</b> แล้วแก้ไขโปรเจกต์เพื่อเพิ่มวันเริ่มต้น-สิ้นสุด</small></div>`;
+  const legend = `<div class="npd-legend">
+    ${shownBrands.filter(b=>list.some(p=>p.brand===b.id)).map(b=>`<span class="li"><span class="sw" style="background:${b.color}"></span>${esc(b.short.split(' ')[0])}</span>`).join('')}
+    ${NPD_STATUSES.map(s=>`<span class="li">${s.ico} ${s.label}</span>`).join('')}
+  </div>`;
+
+  return pills + `<div class="gantt-wrap"><div class="npd-card-title" style="margin-bottom:2px">Launch Timeline</div><div class="npd-card-sub">ปี ${npdYear}</div><div class="gantt-inner" style="min-width:700px">${gantt}</div>${legend}</div>`;
+}
+
+function npdProjectsView(){
+  const q=npdSearch.toLowerCase();
+  let list=(DATA.npd||[]).filter(p=>(!npdFStatus||p.status===npdFStatus)&&(!q||(p.theme+p.owner+(p.description||"")).toLowerCase().includes(q)))
+    .sort((a,c)=>a.launchStart.localeCompare(c.launchStart));
+
+  const toolbar = `<div class="npd-toolbar">
+    <div class="npd-search">🔍<input placeholder="ค้นหา theme, owner…" value="${esc(npdSearch)}" oninput="npdSearch=this.value;render()"></div>
+    <select onchange="npdFStatus=this.value;render()">
+      <option value="">All statuses</option>
+      ${NPD_STATUSES.map(s=>`<option value="${s.id}" ${s.id===npdFStatus?'selected':''}>${s.ico} ${s.label}</option>`).join('')}
+    </select>
+  </div>`;
+
+  const tbody = list.length ? list.map(p=>{
+    const b=npdBrandOf(p.brand), a=npdAch(p);
+    return `<tr>
+      <td><b>${esc(p.theme)}</b><div style="font-size:10px;color:var(--mut2)">${esc(p.description||'')}</div></td>
+      <td><span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600"><span class="npd-dot" style="background:${b.color}"></span>${esc(b.short.split(' ')[0])}</span></td>
+      <td style="white-space:nowrap;font-size:11px">${npdFmtWin(p)}</td>
+      <td style="font-size:11px">${esc(p.owner||'—')}</td>
+      <td>${npdStatusChip(p.status)}</td>
+      <td><div style="display:flex;align-items:center;gap:6px;min-width:100px"><div class="npd-prog" style="flex:1;height:5px"><i style="width:${a}%;background:${b.color}"></i></div><span style="font-size:11px;font-weight:700;width:30px">${a}%</span></div></td>
+      <td><button class="link-btn" style="font-size:11px" onclick="openNpdModal('${p.id}')">Edit</button></td>
+    </tr>`;
+  }).join('') : `<tr><td colspan="7"><div class="empty" style="padding:30px 0"><div class="big">📋</div>ไม่มีโปรเจกต์${npdSearch||npdFStatus?' ที่ตรงเงื่อนไข':''}</div></td></tr>`;
+
+  return toolbar + `<div class="npd-tbl-wrap"><table>
+    <thead><tr><th>Theme / Project</th><th>Brand</th><th>Launch Window</th><th>Owner</th><th>Status</th><th>Achievement</th><th></th></tr></thead>
+    <tbody>${tbody}</tbody>
+  </table></div>`;
+}
+
+function npdToggleMs(id, i){
+  const p=(DATA.npd||[]).find(x=>x.id===id); if(!p) return;
+  p.milestones[i].done=!p.milestones[i].done;
+  if(p.milestones.every(m=>m.done) && ["launched","inprogress"].includes(p.status)){
+    p.status="completed"; toast("\""+p.theme+"\" Completed ✅");
   }
-
-  // legend
-  const legend = `<div style="display:flex;flex-wrap:wrap;gap:8px 14px;margin-top:14px;padding-top:10px;border-top:1px solid var(--line2);font-size:11px;color:var(--mut)">
-    ${shownBrands.filter(b=>list.some(p=>p.brandId===b.id)).map(b=>
-      `<span><span class="dot" style="background:${b.color};width:9px;height:9px;border-radius:50%;display:inline-block;margin-right:5px"></span>${esc(b.short)}</span>`).join('')}
-    ${Object.entries(STATUS_ICO).map(([k,v])=>`<span>${v} ${k}</span>`).join('')}
-    ${showToday?`<span style="color:var(--red)">▏วันนี้</span>`:''}
-  </div>`;
-
-  return `
-    ${pillsHtml}
-    ${tilesHtml}
-    <div class="gantt-wrap">
-      <div style="font-size:13px;font-weight:700;margin-bottom:2px">แผนงาน Gantt Chart</div>
-      <div style="font-size:11px;color:var(--mut2);margin-bottom:12px">แผนการพัฒนาเมนูตามแบรนด์ · ปี ${year}</div>
-      ${ganttHtml}
-      ${legend}
-    </div>
-    ${noDates?`<div class="help" style="margin-top:10px">💡 โปรเจกต์ที่ไม่มีวันที่ (${noDates} รายการ) ไม่แสดงใน Gantt — ไปแก้ไขที่ <b>Project</b> เพื่อเพิ่มวันเริ่มต้น/สิ้นสุด</div>`:''}
-  `;
+  save(); render();
 }
 
-function kpiTile(label, value, note){
-  return `<div class="card" style="padding:12px 14px">
-    <div style="font-size:10px;font-weight:700;color:var(--mut2);text-transform:uppercase;letter-spacing:.05em">${label}</div>
-    <div style="font-size:22px;font-weight:800;margin-top:2px;line-height:1.1">${value}</div>
-    <div style="font-size:11px;color:var(--mut2);margin-top:3px">${note}</div>
-  </div>`;
+let npdMsDraft=[];
+function openNpdModal(id){
+  const isNew=!id;
+  const p=id ? JSON.parse(JSON.stringify((DATA.npd||[]).find(x=>x.id===id))) : {
+    id:uid("npd"), brand:npdBrand||BRANDS[0].id, theme:"", description:"",
+    owner:"", launchStart:npdYear+"-01", launchEnd:npdYear+"-01",
+    status:"planning", actualLaunch:null,
+    milestones: NPD_DEFAULT_MS.map(m=>({...m,done:false})), images:[]
+  };
+  npdMsDraft=(p.milestones||[]).map(m=>({...m}));
+  openModal({
+    title: isNew?"เพิ่ม NPD Project":"แก้ไข NPD Project",
+    wide: true,
+    body:`
+      <div class="form-row">
+        <div class="field"><label>Theme / ชื่อโปรเจกต์ *</label><input id="np_theme" value="${esc(p.theme)}" placeholder="e.g. Summer Menu Festival"/></div>
+        <div class="field"><label>Brand</label>${brandSelect("np_brand",p.brand)}</div>
+      </div>
+      <div class="form-row one"><div class="field"><label>รายละเอียด</label><textarea id="np_desc" rows="2">${esc(p.description||"")}</textarea></div></div>
+      <div class="form-row">
+        <div class="field"><label>Owner (PIC)</label><input id="np_owner" value="${esc(p.owner||"")}" placeholder="ผู้รับผิดชอบ"/></div>
+        <div class="field"><label>Status</label><select id="np_status">${NPD_STATUSES.map(s=>`<option value="${s.id}" ${s.id===p.status?'selected':''}>${s.ico} ${s.label}</option>`).join('')}</select></div>
+      </div>
+      <div class="form-row">
+        <div class="field"><label>Launch Start *</label><input id="np_start" type="month" value="${esc(p.launchStart||'')}"/></div>
+        <div class="field"><label>Launch End</label><input id="np_end" type="month" value="${esc(p.launchEnd||'')}"/></div>
+      </div>
+      <div class="form-row one"><div class="field"><label>Actual Launch (ถ้า launch แล้ว)</label><input id="np_actual" type="month" value="${esc(p.actualLaunch||'')}"/></div></div>
+      <div class="form-row one"><div class="field">
+        <label>Milestones</label>
+        <div id="np_ms_edit" style="display:flex;flex-direction:column;gap:5px"></div>
+        <button type="button" class="link-btn" style="margin-top:4px" onclick="npdAddMs()">＋ Add milestone</button>
+        <datalist id="npdDeptList"><option value="R&D"><option value="QA/R&D"><option value="Finance"><option value="Marketing"><option value="Operations"><option value="Supply Chain"><option value="Purchasing"><option value="Training"></datalist>
+      </div></div>
+    `,
+    onSave:()=>{
+      const g=id=>document.getElementById(id); const v=id=>g(id).value;
+      p.theme=v("np_theme").trim(); if(!p.theme){toast("ใส่ชื่อโปรเจกต์","err");return false;}
+      p.brand=v("np_brand"); p.description=v("np_desc"); p.owner=v("np_owner"); p.status=v("np_status");
+      let start=v("np_start"), end=v("np_end")||start;
+      if(end<start) end=start;
+      p.launchStart=start; p.launchEnd=end; p.actualLaunch=v("np_actual")||null;
+      p.milestones=npdMsDraft.filter(m=>m.name.trim());
+      if(!DATA.npd) DATA.npd=[];
+      const idx=DATA.npd.findIndex(x=>x.id===p.id);
+      if(idx>=0) DATA.npd[idx]=p; else DATA.npd.push(p);
+      npdYear=+start.slice(0,4);
+      save(); render(); toast(isNew?"เพิ่ม NPD Project แล้ว":"บันทึกแล้ว"); return true;
+    }
+  });
+  npdRenderMs();
+  if(id){
+    const modal=document.getElementById("modal");
+    const foot=modal.querySelector(".modal-foot");
+    const delBtn=document.createElement("button");
+    delBtn.className="btn"; delBtn.style.cssText="color:var(--red);margin-right:auto";
+    delBtn.textContent="🗑 ลบโปรเจกต์";
+    delBtn.onclick=()=>{
+      if(!confirmDel()) return;
+      DATA.npd=(DATA.npd||[]).filter(x=>x.id!==id);
+      save(); closeModal(); render(); toast("ลบ NPD Project แล้ว");
+    };
+    foot.insertBefore(delBtn,foot.firstChild);
+  }
 }
+
+function npdRenderMs(){
+  const wrap=document.getElementById("np_ms_edit"); if(!wrap) return;
+  wrap.innerHTML=npdMsDraft.map((m,i)=>`
+    <div style="display:flex;gap:6px;align-items:center">
+      <input type="checkbox" ${m.done?'checked':''} onchange="npdMsDraft[${i}].done=this.checked" style="width:14px;height:14px;accent-color:var(--green);flex:none">
+      <input type="text" value="${esc(m.name)}" oninput="npdMsDraft[${i}].name=this.value" placeholder="Milestone" style="flex:1;background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:5px 8px;color:var(--txt);font-size:12px">
+      <input type="text" value="${esc(m.dept||'')}" oninput="npdMsDraft[${i}].dept=this.value" placeholder="Dept" list="npdDeptList" style="width:90px;background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:5px 8px;color:var(--txt);font-size:12px">
+      <button type="button" onclick="npdMsDraft.splice(${i},1);npdRenderMs()" style="color:var(--mut2);font-size:14px;padding:2px 5px">×</button>
+    </div>`).join('');
+}
+function npdAddMs(){ npdMsDraft.push({name:'',dept:'',done:false}); npdRenderMs(); }
 
 /* =========================================================================
    VIEW: COST RM (raw materials)
