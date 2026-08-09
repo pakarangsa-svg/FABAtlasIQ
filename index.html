@@ -187,6 +187,39 @@
   .link-btn:hover{text-decoration:underline}
   .kpi-good{color:var(--green)} .kpi-warn{color:var(--brand)} .kpi-bad{color:var(--red)}
 
+  /* ---- Timeline light-theme wrapper ---- */
+  .tl-light-wrap{
+    --bg:#f8fafc; --panel:#ffffff; --panel2:#f1f5f9;
+    --line:#e2e8f0; --line2:#e8eef6;
+    --txt:#1e293b; --mut:#475569; --mut2:#94a3b8;
+    --chip:#e8eef6;
+    color:var(--txt);
+    min-height:calc(100vh - 120px);
+    margin:-24px -26px -60px;
+    padding:24px 26px 60px;
+    background:var(--bg);
+  }
+  .tl-light-wrap select,
+  .tl-light-wrap input,
+  .tl-light-wrap textarea{
+    background:var(--panel);border-color:var(--line);color:var(--txt);
+  }
+  .tl-light-wrap .btn{
+    background:var(--panel);border-color:var(--line);color:var(--txt);
+  }
+  .tl-light-wrap .btn:hover{border-color:var(--mut);color:var(--txt)}
+  .tl-light-wrap .gantt-wrap{background:var(--panel)}
+  .tl-light-wrap .g-header{background:var(--panel2);border-bottom:1px solid var(--line)}
+  .tl-light-wrap .g-row{border-bottom:1px solid var(--line)}
+  .tl-light-wrap .g-label{color:var(--txt)}
+  .tl-light-wrap .g-brand-sep{background:var(--panel2);color:var(--mut);border-bottom:1px solid var(--line)}
+  .tl-light-wrap .npd-tbl-wrap{background:var(--panel)}
+  .tl-light-wrap .npd-tbl-wrap th{background:var(--panel2)}
+  .tl-light-wrap .npd-tbl-wrap tbody tr:hover{background:var(--panel2)}
+  @media(max-width:820px){
+    .tl-light-wrap{margin:-14px -12px -60px;padding:14px 12px 60px}
+  }
+
   /* ---- NPD KPI sub-tabs ---- */
   .npd-tabs{display:flex;gap:2px;border-bottom:1px solid var(--line);margin-bottom:18px;overflow-x:auto;scrollbar-width:none}
   .npd-tabs::-webkit-scrollbar{display:none}
@@ -637,6 +670,7 @@ function renderTop(){
 }
 function render(){
   const v=document.getElementById("view");
+  v.style.background = App.page==='timeline' ? '' : '';
   v.innerHTML = ({
     home:viewHome, foodcost:viewFoodCost, bom:viewBom,
     setbom:viewSetBom, project:viewProject, timeline:viewTimeline, costrm:viewCostRM
@@ -1241,7 +1275,7 @@ function viewTimeline(){
   else if(npdSub==="gantt") body = npdGanttView();
   else body = npdProjectsView();
 
-  return tabsHtml + body;
+  return `<div class="tl-light-wrap">${tabsHtml}${body}</div>`;
 }
 
 function npdDashboard(){
