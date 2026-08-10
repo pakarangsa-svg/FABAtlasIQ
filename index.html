@@ -333,6 +333,18 @@
   .g-row:hover{background:rgba(76,141,255,.08)}
   .g-row:hover .g-label{color:var(--blue)}
   .g-ms-badge{font-size:9px;font-weight:700;color:var(--mut2);background:var(--line2);border-radius:99px;padding:1px 5px;flex:none}
+  .g-toggle{background:none;border:none;cursor:pointer;color:var(--mut2);font-size:9px;padding:0 3px;border-radius:3px;line-height:1;flex:none;width:16px;text-align:center;transition:color .1s}
+  .g-toggle:hover{background:var(--line2);color:var(--txt)}
+  .g-ms-rows{overflow:hidden;margin-bottom:2px}
+  .g-ms-row{display:grid;grid-template-columns:180px 1fr;align-items:center;min-height:22px;border-radius:5px;cursor:default}
+  .g-ms-row:hover{background:rgba(76,141,255,.04)}
+  .g-ms-label{font-size:10px;color:var(--mut);padding:2px 8px 2px 22px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:5px}
+  .g-ms-ic{font-size:10px;font-weight:700;flex:none;width:12px;text-align:center}
+  .g-ms-name{overflow:hidden;text-overflow:ellipsis}
+  .g-ms-cells{position:relative;height:18px}
+  .g-ms-bar{position:absolute;top:50%;transform:translateY(-50%);height:4px;border-radius:2px;opacity:.55}
+  .g-ms-dot{position:absolute;top:50%;transform:translate(-50%,-50%);width:9px;height:9px;border-radius:50%;border:2px solid;box-sizing:border-box;z-index:1;transition:transform .1s}
+  .g-ms-row:hover .g-ms-dot{transform:translate(-50%,-50%) scale(1.3)}
   .g-label{font-size:12px;color:var(--txt);padding-right:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:5px}
   .g-label .st{font-size:11px}
   .g-cells{grid-column:2/14;position:relative;height:20px}
@@ -1237,6 +1249,14 @@ let npdBrand = "";
 let npdSearch = "";
 let npdFStatus = "";
 let npdEditBrand = BRANDS[0].id;
+const npdExpanded = new Set();
+function npdToggleExpand(e, pid){
+  e.stopPropagation();
+  npdExpanded.has(pid) ? npdExpanded.delete(pid) : npdExpanded.add(pid);
+  const rows=document.getElementById('gms_'+pid);
+  if(rows) rows.style.display=npdExpanded.has(pid)?'block':'none';
+  e.currentTarget.textContent=npdExpanded.has(pid)?'▼':'▶';
+}
 
 function npdYearProjects(){
   return (DATA.npd||[]).filter(p=>{
@@ -1483,6 +1503,7 @@ function npdGanttView(){
     hasAny=true;
     const lList=bl.filter(p=>p.actualLaunch), avg=bl.length?Math.round(bl.reduce((a,p)=>a+npdAch(p),0)/bl.length):0;
     gantt += `<div class="g-brand-sep"><span class="npd-dot" style="background:${b.color}"></span>${esc(b.short)} <span style="font-weight:400;color:var(--mut2)">· ${bl.length} projects · avg ${avg}%</span></div>`;
+    const today=new Date().toISOString().slice(0,10);
     for(const p of bl){
       const s = +p.launchStart.slice(0,4)<npdYear ? 0 : +p.launchStart.slice(5,7)-1;
       const eRaw = p.launchEnd || (npdYear+"-12");
@@ -1491,8 +1512,40 @@ function npdGanttView(){
       const st=npdStatusOf(p.status);
       const a=npdAch(p);
       const ms=p.milestones||[], msDone=ms.filter(m=>m.done).length;
+
+      // milestone sub-rows — only those with dueDate in npdYear
+      const msInYear=ms.filter(m=>m.dueDate&&+m.dueDate.slice(0,4)===npdYear);
+      const isExp=npdExpanded.has(p.id);
+      const msRows=msInYear.map(m=>{
+        const dM=+m.dueDate.slice(5,7)-1;
+        const dD=+(m.dueDate.slice(8,10)||'1');
+        const duePct=100*(dM+dD/31)/12;
+        const bw=Math.max(0,duePct-left);
+        const over=!m.done&&m.dueDate<today;
+        const col=m.done?'var(--green)':over?'var(--red)':b.color;
+        return `<div class="g-ms-row" title="${esc(m.name)}${m.dueDate?' · '+fmtDue(m.dueDate):''}${over?' ⚠️':''}">
+          <div class="g-ms-label">
+            <span class="g-ms-ic" style="color:${col}">${m.done?'✓':over?'!':'○'}</span>
+            <span class="g-ms-name">${esc(m.name)}</span>
+            ${m.dept?`<span class="npd-ms-dept" style="font-size:8px;padding:0 4px">${esc(m.dept)}</span>`:''}
+          </div>
+          <div class="g-ms-cells">
+            <div class="g-grid" style="position:absolute;inset:0;display:grid;grid-template-columns:repeat(12,1fr)">${'<i style="border-left:1px solid var(--line)"></i>'.repeat(12)}</div>
+            <div class="g-ms-bar" style="left:${left}%;width:${bw}%;background:${col}"></div>
+            <div class="g-ms-dot" style="left:${duePct}%;background:${m.done?col:'#fff'};border-color:${col}"></div>
+            ${showToday?`<div class="g-today" style="left:${todayPct}%;opacity:.35"></div>`:''}
+          </div>
+        </div>`;
+      }).join('');
+
       gantt += `<div class="g-row" onclick="npdShowMilestones('${p.id}')" title="คลิกดู Milestones">
-        <div class="g-label"><span class="st">${st.ico}</span>${esc(p.theme)}${ms.length?`<span class="g-ms-badge">${msDone}/${ms.length}</span>`:''}</div>
+        <div class="g-label">
+          ${msInYear.length
+            ? `<button class="g-toggle" onclick="npdToggleExpand(event,'${p.id}')" title="${isExp?'ซ่อน':'แสดง'}งานย่อย">${isExp?'▼':'▶'}</button>`
+            : `<span style="width:16px;display:inline-block"></span>`}
+          <span class="st">${st.ico}</span>${esc(p.theme)}
+          ${ms.length?`<span class="g-ms-badge">${msDone}/${ms.length}</span>`:''}
+        </div>
         <div class="g-cells">
           <div class="g-grid">${'<i></i>'.repeat(12)}</div>
           <div class="g-bar" style="left:${left}%;width:calc(${width}% - 3px);background:${b.color}"
@@ -1501,7 +1554,8 @@ function npdGanttView(){
           </div>
           ${showToday?`<div class="g-today" style="left:${todayPct}%"></div>`:''}
         </div>
-      </div>`;
+      </div>
+      ${msInYear.length?`<div id="gms_${p.id}" class="g-ms-rows" style="display:${isExp?'block':'none'}">${msRows}</div>`:''}`;
     }
   }
   if(!hasAny) gantt += `<div class="tl-empty">ไม่มีโปรเจกต์ที่มีวันที่ในปี ${npdYear} — กด ＋ เพิ่มโปรเจกต์</div>`;
