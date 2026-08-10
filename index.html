@@ -459,7 +459,10 @@ function load(){
   seed(d);
   return d;
 }
-function save(){ localStorage.setItem(STORE_KEY, JSON.stringify(DATA)); }
+function save(){
+  try{ localStorage.setItem(STORE_KEY, JSON.stringify(DATA)); return true; }
+  catch(e){ console.error("save failed",e); toast("บันทึกล้มเหลว — พื้นที่เก็บข้อมูลเต็ม ลองลดขนาดหรือจำนวนรูป","err"); return false; }
+}
 function uid(p){ return p+"_"+Math.random().toString(36).slice(2,9); }
 
 /* ---------- seed sample data ---------- */
@@ -1665,14 +1668,27 @@ function npdRenderImgs(){
       <button type="button" onclick="npdImgDraft.splice(${i},1);npdRenderImgs()" style="position:absolute;top:-5px;right:-5px;width:18px;height:18px;border-radius:50%;background:var(--red);color:#fff;font-size:11px;border:none;cursor:pointer;display:grid;place-items:center;padding:0">×</button>
     </div>`).join('');
 }
-function npdAddImages(inp){
-  const files=[...inp.files];
-  let loaded=0;
-  files.forEach(f=>{
-    const r=new FileReader();
-    r.onload=e=>{ npdImgDraft.push({name:f.name,src:e.target.result}); loaded++; if(loaded===files.length) npdRenderImgs(); };
-    r.readAsDataURL(f);
+function npdCompressImg(file,maxPx,q){
+  return new Promise(resolve=>{
+    const img=new Image(), url=URL.createObjectURL(file);
+    img.onload=()=>{
+      URL.revokeObjectURL(url);
+      let w=img.width, h=img.height;
+      if(w>maxPx||h>maxPx){ const r=Math.min(maxPx/w,maxPx/h); w=Math.round(w*r); h=Math.round(h*r); }
+      const c=document.createElement('canvas'); c.width=w; c.height=h;
+      c.getContext('2d').drawImage(img,0,0,w,h);
+      resolve({src:c.toDataURL('image/jpeg',q||0.72), name:file.name});
+    };
+    img.onerror=()=>{ URL.revokeObjectURL(url); resolve(null); };
+    img.src=url;
   });
+}
+async function npdAddImages(inp){
+  const files=[...inp.files];
+  for(const f of files){
+    const result=await npdCompressImg(f,720,0.72);
+    if(result){ npdImgDraft.push(result); npdRenderImgs(); }
+  }
   inp.value="";
 }
 
@@ -1837,8 +1853,10 @@ function openModal({title,body,onSave,wide}){
 }
 function closeModal(){ document.getElementById("modalBack").classList.remove("open"); modalState=null; }
 function saveModal(){
-  if(modalState&&modalState.onSave){ const ok=modalState.onSave(); if(ok!==false) closeModal(); }
-  else closeModal();
+  try{
+    if(modalState&&modalState.onSave){ const ok=modalState.onSave(); if(ok!==false) closeModal(); }
+    else closeModal();
+  }catch(e){ console.error("saveModal error",e); toast("เกิดข้อผิดพลาด: "+e.message,"err"); }
 }
 document.getElementById("modalBack").addEventListener("mousedown",e=>{
   if(e.target.id==="modalBack") closeModal();
