@@ -329,8 +329,10 @@
   .g-header span:first-child{text-align:left}
   .g-brand-sep{padding:10px 0 3px;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--mut);display:flex;align-items:center;gap:7px}
   .g-brand-sep .dot{width:8px;height:8px;border-radius:50%}
-  .g-row{display:grid;grid-template-columns:180px repeat(12,1fr);align-items:center;min-height:32px;border-radius:8px;cursor:default}
-  .g-row:hover{background:var(--panel2)}
+  .g-row{display:grid;grid-template-columns:180px repeat(12,1fr);align-items:center;min-height:32px;border-radius:8px;cursor:pointer;transition:background .1s}
+  .g-row:hover{background:rgba(76,141,255,.08)}
+  .g-row:hover .g-label{color:var(--blue)}
+  .g-ms-badge{font-size:9px;font-weight:700;color:var(--mut2);background:var(--line2);border-radius:99px;padding:1px 5px;flex:none}
   .g-label{font-size:12px;color:var(--txt);padding-right:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:5px}
   .g-label .st{font-size:11px}
   .g-cells{grid-column:2/14;position:relative;height:20px}
@@ -1488,8 +1490,9 @@ function npdGanttView(){
       const left=100*s/12, width=100*(e-s+1)/12;
       const st=npdStatusOf(p.status);
       const a=npdAch(p);
-      gantt += `<div class="g-row">
-        <div class="g-label"><span class="st">${st.ico}</span>${esc(p.theme)}</div>
+      const ms=p.milestones||[], msDone=ms.filter(m=>m.done).length;
+      gantt += `<div class="g-row" onclick="npdShowMilestones('${p.id}')" title="คลิกดู Milestones">
+        <div class="g-label"><span class="st">${st.ico}</span>${esc(p.theme)}${ms.length?`<span class="g-ms-badge">${msDone}/${ms.length}</span>`:''}</div>
         <div class="g-cells">
           <div class="g-grid">${'<i></i>'.repeat(12)}</div>
           <div class="g-bar" style="left:${left}%;width:calc(${width}% - 3px);background:${b.color}"
@@ -1557,6 +1560,89 @@ function npdToggleMs(id, i){
     p.status="completed"; toast("\""+p.theme+"\" Completed ✅");
   }
   save(); render();
+}
+
+function npdMsListHtml(p){
+  const b=npdBrandOf(p.brand);
+  return (p.milestones||[]).length
+    ? (p.milestones||[]).map((m,i)=>{
+        const over=m.dueDate&&!m.done&&m.dueDate<new Date().toISOString().slice(0,10);
+        return `<div class="npd-ms-item ${m.done?'done':''}" onclick="npdGanttToggleMs('${p.id}',${i})" role="checkbox" aria-checked="${m.done}" style="padding:7px 8px;border-radius:8px">
+          <span class="mbox" style="width:16px;height:16px;font-size:10px">${m.done?'✓':''}</span>
+          <span class="mname">${esc(m.name)}</span>
+          ${m.dept?`<span class="npd-ms-dept">${esc(m.dept)}</span>`:''}
+          ${m.dueDate?`<span class="npd-ms-due ${over?'overdue':''}">${over?'⚠️ ':'📅 '}${fmtDue(m.dueDate)}</span>`:''}
+        </div>`;
+      }).join('')
+    : `<div style="color:var(--mut2);font-size:12px;padding:10px 0">ยังไม่มี Milestone — กด แก้ไข เพื่อเพิ่ม</div>`;
+}
+
+function npdGanttToggleMs(pid, i){
+  const p=(DATA.npd||[]).find(x=>x.id===pid); if(!p) return;
+  p.milestones[i].done=!p.milestones[i].done;
+  if(p.milestones.every(m=>m.done) && ["launched","inprogress"].includes(p.status)){
+    p.status="completed"; toast("\""+p.theme+"\" Completed ✅");
+  }
+  save();
+  const modal=document.getElementById("modal"); if(!modal) return;
+  const msWrap=modal.querySelector(".gantt-ms-list");
+  if(msWrap) msWrap.innerHTML=npdMsListHtml(p);
+  const a=npdAch(p), b=npdBrandOf(p.brand);
+  const progI=modal.querySelector(".gantt-ms-prog i");
+  if(progI) progI.style.width=a+"%";
+  const achTxt=modal.querySelector(".gantt-ms-ach");
+  if(achTxt) achTxt.textContent="Achievement "+a+"%"+(a===100?" · ✅ complete":"");
+}
+
+function npdShowMilestones(pid){
+  const p=(DATA.npd||[]).find(x=>x.id===pid); if(!p) return;
+  const b=npdBrandOf(p.brand), a=npdAch(p);
+  openModal({
+    title: esc(p.theme),
+    onSave: null,
+    body:`
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+        <span class="nbc-swatch" style="${b.logo?'':'background:'+b.color};width:40px;height:40px;border-radius:11px;flex:none">
+          ${b.logo?`<img src="${b.logo}" style="width:100%;height:100%;object-fit:contain;border-radius:9px;background:#fff;padding:2px" onerror="this.parentNode.style.background='${b.color}';this.remove()">`:`<span style="color:#fff;font-size:11px;font-weight:800">${esc(b.short.slice(0,2).toUpperCase())}</span>`}
+        </span>
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-bottom:3px">
+            <span style="font-size:12px;font-weight:600;color:var(--mut)">${esc(b.name)}</span>
+            ${npdStatusChip(p.status)}
+          </div>
+          <div style="font-size:11px;color:var(--mut2)">📅 ${npdFmtWin(p)}${p.owner?' &nbsp;·&nbsp; 👤 '+esc(p.owner):''}</div>
+        </div>
+      </div>
+      ${p.description?`<div style="font-size:12px;color:var(--mut);line-height:1.55;margin-bottom:12px;padding:8px 10px;background:var(--panel2);border-radius:8px">${esc(p.description)}</div>`:''}
+      <div style="display:flex;justify-content:space-between;align-items:center;font-size:11px;color:var(--mut2);margin-bottom:5px">
+        <span style="font-weight:700;color:var(--txt)">Milestones (${(p.milestones||[]).filter(m=>m.done).length}/${(p.milestones||[]).length})</span>
+        <span class="gantt-ms-ach" style="font-weight:700;color:${a===100?'var(--green)':'var(--mut)'}">Achievement ${a}%${a===100?' · ✅ complete':''}</span>
+      </div>
+      <div class="npd-prog gantt-ms-prog" style="height:7px;margin-bottom:12px;border-radius:99px"><i style="width:${a}%;background:${b.color};border-radius:99px"></i></div>
+      <div class="npd-ms-list gantt-ms-list" style="gap:2px">${npdMsListHtml(p)}</div>
+      ${(p.images||[]).length?`
+        <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--line)">
+          <div style="font-size:11px;color:var(--mut2);margin-bottom:8px;font-weight:700">รูปเมนู (${p.images.length})</div>
+          <div style="display:flex;flex-wrap:wrap;gap:7px">
+            ${p.images.map(img=>`<img src="${img.src}" alt="${esc(img.name)}" title="${esc(img.name)}" style="width:80px;height:80px;object-fit:cover;border-radius:9px;border:1px solid var(--line);cursor:zoom-in" onclick="npdLightbox(this.src)">`).join('')}
+          </div>
+        </div>`:''}
+    `
+  });
+  const modal=document.getElementById("modal");
+  modal.querySelector(".modal-foot").innerHTML=`
+    <button class="btn" onclick="closeModal()">✕ ปิด</button>
+    <button class="btn primary" onclick="closeModal();setTimeout(()=>openNpdModal('${pid}'),50)">✏️ แก้ไข</button>
+  `;
+}
+
+function npdLightbox(src){
+  const ov=document.createElement('div');
+  ov.style.cssText='position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.93);display:grid;place-items:center;cursor:zoom-out;animation:fadeIn .15s';
+  const img=document.createElement('img');
+  img.src=src; img.style.cssText='max-width:92vw;max-height:92vh;object-fit:contain;border-radius:10px;box-shadow:0 8px 40px rgba(0,0,0,.6)';
+  ov.appendChild(img); ov.onclick=()=>ov.remove();
+  document.body.appendChild(ov);
 }
 
 let npdMsDraft=[];
