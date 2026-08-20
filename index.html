@@ -382,7 +382,7 @@
     </div>
     <div class="nav-label">เมนูหลัก</div>
     <div id="nav"></div>
-    <div class="sidebar-foot">
+    <div class="sidebar-foot" id="sidebarFoot">
       <div>v1.0 · ออฟไลน์ · บันทึกอัตโนมัติ</div>
     </div>
   </aside>
@@ -431,10 +431,10 @@ const NAV = [
   { id:"dashboard", label:"Dashboard", en:"Dashboard",  ic:"📈", sub:"วิเคราะห์ต้นทุนเปรียบเทียบรายเดือน" },
   { id:"foodcost",  label:"Food Cost", en:"Food Cost",  ic:"📊", sub:"คำนวณ % ต้นทุนอาหารต่อเมนู" },
   { id:"bom",      label:"BOM",       en:"BOM",       ic:"📋", sub:"สูตรกลาง / Bill of Materials" },
-  { id:"setbom",   label:"Set BOM",   en:"Set BOM",   ic:"🧪", sub:"สร้าง / แก้ไขสูตร BOM" },
-  { id:"project",  label:"Project",   en:"Project",   ic:"🗂️", sub:"โครงการ / ชุดเมนูพัฒนาสินค้า" },
+  { id:"setbom",   label:"Tasks",     en:"Tasks",     ic:"✅", sub:"งาน / สูตร BOM" },
   { id:"timeline", label:"Timeline",  en:"Timeline",  ic:"📅", sub:"Gantt Chart แผนงานโปรเจกต์" },
   { id:"costrm",   label:"Cost RM",   en:"Cost RM",   ic:"🥩", sub:"ราคา & ต้นทุนวัตถุดิบ" },
+  { id:"admin",    label:"Admin",     en:"Admin",     ic:"🔐", sub:"จัดการ User & สิทธิ์การเข้าถึง" },
 ];
 
 const UNITS = ["g","kg","ml","L","ชิ้น","ฟอง","แผ่น","ใบ","ลูก","ช้อนโต๊ะ","ช้อนชา","ถ้วย","ซอง","หน่วย"];
@@ -450,6 +450,7 @@ function blankData(){
     npd:[],         // NPD KPI projects (Timeline module)
     cogTargets:{},          // { brandId: targetPct% }
     monthlySnapshots:[],    // [{ id, month, capturedDate, label, rmPrices:{}, menuCosts:{} }]
+    users:[],               // [{ id, username, password, displayName, role, brandAccess }]
   };
 }
 let DATA = load();
@@ -457,7 +458,12 @@ let DATA = load();
 function load(){
   try{
     const raw = localStorage.getItem(STORE_KEY);
-    if(raw){ const d = JSON.parse(raw); return Object.assign(blankData(), d); }
+    if(raw){
+      const d = JSON.parse(raw);
+      const merged = Object.assign(blankData(), d);
+      if(!merged.users.length) merged.users.push({ id:uid('usr'), username:'admin', password:'admin1234', displayName:'Administrator', role:'admin', brandAccess:['all'] });
+      return merged;
+    }
   }catch(e){ console.warn(e); }
   const d = blankData();
   seed(d);
@@ -471,6 +477,10 @@ function uid(p){ return p+"_"+Math.random().toString(36).slice(2,9); }
 
 /* ---------- seed sample data ---------- */
 function seed(d){
+  // Default admin user
+  if(!d.users.length){
+    d.users.push({ id:uid('usr'), username:'admin', password:'admin1234', displayName:'Administrator', role:'admin', brandAccess:['all'] });
+  }
   const m = (code,name,cat,unit,price,qty,punit,yield_)=>{
     const id = uid("rm");
     d.materials.push({id,code,name,category:cat,unit,purchasePrice:price,purchaseQty:qty,purchaseUnit:punit,yieldPercent:yield_??1,notes:""});
@@ -670,6 +680,19 @@ function renderNav(){
     <div class="nav-item ${App.page===n.id?'active':''}" onclick="App.go('${n.id}')">
       <span class="ic">${n.ic}</span><span>${n.label}</span>
     </div>`).join("");
+  const foot=document.getElementById("sidebarFoot");
+  if(foot){
+    foot.innerHTML = authSession
+      ? `<div style="display:flex;align-items:center;gap:8px">
+           <span style="font-size:14px">👤</span>
+           <div style="flex:1;min-width:0">
+             <div style="font-weight:600;font-size:12px;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(authSession.displayName||authSession.username)}</div>
+             <div style="font-size:10px;opacity:.6">${authSession.role==='admin'?'Admin':'User'}</div>
+           </div>
+           <button class="icon-btn" onclick="logout()" title="ออกจากระบบ" style="color:rgba(255,255,255,.6);font-size:12px">⏏</button>
+         </div>`
+      : `<div style="font-size:11px;opacity:.6">v1.0 · ออฟไลน์ · บันทึกอัตโนมัติ</div>`;
+  }
 }
 function renderTop(){
   const n = NAV.find(x=>x.id===App.page)||NAV[0];
@@ -683,8 +706,86 @@ function render(){
   const v=document.getElementById("view");
   v.innerHTML = ({
     home:viewHome, dashboard:viewDashboard, foodcost:viewFoodCost, bom:viewBom,
-    setbom:viewSetBom, project:viewProject, timeline:viewTimeline, costrm:viewCostRM
+    setbom:viewSetBom, timeline:viewTimeline, costrm:viewCostRM, admin:viewAdmin
   }[App.page]||viewHome)();
+}
+
+/* =========================================================================
+   AUTH SYSTEM
+   ========================================================================= */
+let authSession = null;   // { id, username, displayName, role, brandAccess }
+let protectedBrand = '';  // brand selected after login for protected pages
+
+function getAccessibleBrands(user){
+  if(!user) return [];
+  return user.brandAccess.includes('all') ? BRANDS : BRANDS.filter(b=>user.brandAccess.includes(b.id));
+}
+function isLoggedIn(){ return authSession!==null; }
+function isAdmin(){ return authSession?.role==='admin'; }
+
+function doLogin(username, password){
+  const u=(DATA.users||[]).find(x=>x.username===username&&x.password===password);
+  if(!u) return false;
+  authSession={...u}; return true;
+}
+function logout(){ authSession=null; protectedBrand=''; App.go('home'); toast('ออกจากระบบแล้ว'); }
+
+function openBrandPickerModal(){
+  const brands = getAccessibleBrands(authSession);
+  openModal({
+    title:'🏢 เลือกแบรนด์ที่ต้องการดู',
+    noFoot: true,
+    body:`<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:12px;padding:6px 0">
+      ${brands.map(b=>`
+        <div onclick="protectedBrand='${b.id}';closeModal();render();"
+             style="cursor:pointer;text-align:center;padding:16px 10px;border:2px solid var(--line);border-radius:12px;transition:.15s"
+             onmouseover="this.style.borderColor='${b.color}';this.style.background='${b.color}18'"
+             onmouseout="this.style.borderColor='var(--line)';this.style.background=''">
+          ${b.logo?`<img src="${b.logo}" style="width:54px;height:54px;object-fit:contain;border-radius:8px;margin-bottom:8px;display:block;margin-left:auto;margin-right:auto" onerror="this.style.display='none'">`:
+            `<div style="width:54px;height:54px;background:${b.color};border-radius:8px;margin:0 auto 8px"></div>`}
+          <div style="font-size:12px;font-weight:600">${esc(b.short)}</div>
+        </div>`).join('')}
+    </div>`
+  });
+}
+
+function doLoginFlow(){
+  openModal({
+    title:'🔐 เข้าสู่ระบบ',
+    saveLabel:'เข้าสู่ระบบ',
+    body:`
+      <div class="field"><label>Username</label><input id="loginUser" placeholder="username" autocomplete="username" style="font-size:15px"/></div>
+      <div class="field"><label>Password</label><input id="loginPass" type="password" placeholder="password" autocomplete="current-password" style="font-size:15px"/></div>
+      <div id="loginErr" style="color:var(--red);font-size:13px;margin-top:6px;display:none">Username หรือ Password ไม่ถูกต้อง</div>`,
+    onSave:()=>{
+      const u=document.getElementById('loginUser')?.value.trim();
+      const p=document.getElementById('loginPass')?.value;
+      if(doLogin(u,p)){
+        const brands=getAccessibleBrands(authSession);
+        if(brands.length===1){ protectedBrand=brands[0].id; render(); return true; }
+        setTimeout(openBrandPickerModal,80); return true;
+      }
+      document.getElementById('loginErr').style.display='block'; return false;
+    }
+  });
+}
+
+function requireAuthPage(){
+  // Returns HTML if not auth'd, null if auth'd and ready
+  if(!isLoggedIn()){
+    setTimeout(doLoginFlow,0);
+    return `<div style="text-align:center;padding:80px 20px">
+      <div style="font-size:52px;margin-bottom:16px">🔐</div>
+      <h2 style="margin-bottom:8px">กรุณาเข้าสู่ระบบ</h2>
+      <p style="color:var(--mut);margin-bottom:24px">หน้านี้ต้องการการเข้าสู่ระบบ</p>
+      <button class="btn primary" onclick="doLoginFlow()">เข้าสู่ระบบ</button>
+    </div>`;
+  }
+  if(!protectedBrand){
+    setTimeout(openBrandPickerModal,0);
+    return `<div style="text-align:center;padding:80px;color:var(--mut)">กรุณาเลือกแบรนด์...</div>`;
+  }
+  return null;
 }
 
 /* =========================================================================
@@ -1044,13 +1145,13 @@ function viewHome(){
       <div class="section-title"><h2>เมนู %COG สูงสุด</h2><span class="count">${ranked.length}</span></div>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>เมนู</th><th>แบรนด์</th><th class="num">ราคาขาย (Ex-Vat)</th><th class="num">ต้นทุน (บาท)</th><th class="num">%COG</th></tr></thead>
+          <thead><tr><th>เมนู</th><th>แบรนด์</th><th class="num">ราคาขาย<div class="muted" style="font-size:10px;font-weight:400">(Inc.VAT 7%)</div></th><th class="num">ต้นทุน (บาท)</th><th class="num">%COG</th></tr></thead>
           <tbody>
           ${ranked.length? ranked.map(({m,x})=>`
             <tr style="cursor:pointer" onclick="App.go('foodcost')">
               <td><b>${esc(m.name)}</b><div class="muted" style="font-size:11px">${esc(m.code||"")}</div></td>
               <td>${brandTag(m.brandId)}</td>
-              <td class="num mono">${baht(x.sp)}</td>
+              <td class="num mono">${baht(x.sp*1.07)}</td>
               <td class="num mono">${baht(x.cost)}</td>
               <td class="num">${pctChip(x.pct,brandCogTarget(m.brandId))}</td>
             </tr>`).join("")
@@ -1114,7 +1215,9 @@ function quickCard(ic,t,d,page){
    ========================================================================= */
 let menuSearch="";
 function viewFoodCost(){
-  let rows=fMenus();
+  const authBlock=requireAuthPage(); if(authBlock!==null) return authBlock;
+  // filter by protectedBrand instead of DATA.activeBrand
+  let rows=DATA.menus.filter(m=>m.brandId===protectedBrand);
   if(menuSearch) rows=rows.filter(m=>(m.name+m.code).toLowerCase().includes(menuSearch.toLowerCase()));
   return `
   <div class="toolbar">
@@ -1311,7 +1414,8 @@ function collectLineItems(o){ /* items already kept in sync via lineChanged */ }
    ========================================================================= */
 let bomSearch="";
 function viewBom(){
-  let rows=fBoms();
+  const authBlock=requireAuthPage(); if(authBlock!==null) return authBlock;
+  let rows=DATA.boms.filter(b=>b.brandId===protectedBrand);
   if(bomSearch) rows=rows.filter(b=>(b.name+b.code).toLowerCase().includes(bomSearch.toLowerCase()));
   return `
   <div class="toolbar">
@@ -1362,7 +1466,8 @@ function delBom(id){
    ========================================================================= */
 window.__b=null;
 function viewSetBom(){
-  const list=fBoms();
+  const authBlock=requireAuthPage(); if(authBlock!==null) return authBlock;
+  const list=DATA.boms.filter(b=>b.brandId===protectedBrand);
   return `
   <div class="grid" style="grid-template-columns:300px 1fr;align-items:start">
     <div>
@@ -2307,18 +2412,109 @@ function nextCode(prefix,arr){
 
 /* ---------- modal ---------- */
 let modalState=null;
-function openModal({title,body,onSave,wide}){
+/* =========================================================================
+   VIEW: ADMIN — จัดการ Users & สิทธิ์
+   ========================================================================= */
+function viewAdmin(){
+  if(!isLoggedIn()){ setTimeout(doLoginFlow,0); return `<div style="text-align:center;padding:80px"><div style="font-size:52px;margin-bottom:16px">🔐</div><h2>กรุณาเข้าสู่ระบบก่อน</h2><button class="btn primary" style="margin-top:16px" onclick="doLoginFlow()">เข้าสู่ระบบ</button></div>`; }
+  if(!isAdmin()) return `<div style="text-align:center;padding:80px"><div style="font-size:52px;margin-bottom:16px">🚫</div><h2>สงวนสำหรับ Admin เท่านั้น</h2></div>`;
+  const users=DATA.users||[];
+  return `
+  <div class="toolbar">
+    <h2 style="margin:0;font-size:16px">จัดการผู้ใช้งาน</h2>
+    <div class="spacer"></div>
+    <button class="btn primary" onclick="editUser()">＋ เพิ่มผู้ใช้</button>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr>
+        <th>Username</th><th>ชื่อแสดง</th><th>บทบาท</th><th>สิทธิ์แบรนด์</th><th></th>
+      </tr></thead>
+      <tbody>${users.length?users.map(u=>`
+        <tr>
+          <td class="mono"><b>${esc(u.username)}</b></td>
+          <td>${esc(u.displayName||'')}</td>
+          <td><span class="chip ${u.role==='admin'?'purple':'blue'}">${u.role==='admin'?'Admin':'User'}</span></td>
+          <td style="font-size:12px">
+            ${u.brandAccess.includes('all')?'<span class="chip green">ทุกแบรนด์</span>':
+              u.brandAccess.map(id=>{ const b=BRANDS.find(x=>x.id===id); return b?`<span class="chip">${esc(b.short)}</span>`:''; }).join(' ')}
+          </td>
+          <td style="display:flex;gap:6px">
+            <button class="btn sm" onclick="editUser('${u.id}')">✏️ แก้ไข</button>
+            ${u.id!==authSession?.id?`<button class="btn sm danger" onclick="delUser('${u.id}')">ลบ</button>`:''}
+          </td>
+        </tr>`).join(''):`<tr><td colspan="5"><div class="empty">ยังไม่มีผู้ใช้</div></td></tr>`}
+      </tbody>
+    </table>
+  </div>`;
+}
+function editUser(id){
+  const u=id?JSON.parse(JSON.stringify(DATA.users.find(x=>x.id===id)||{})):{id:uid('usr'),username:'',password:'',displayName:'',role:'user',brandAccess:[]};
+  const brandChecks=BRANDS.map(b=>`
+    <label style="display:flex;align-items:center;gap:6px;padding:4px 0;cursor:pointer">
+      <input type="checkbox" id="ba_${b.id}" ${(u.brandAccess||[]).includes(b.id)||(u.brandAccess||[]).includes('all')?'checked':''}/>
+      ${b.logo?`<img src="${b.logo}" style="width:18px;height:18px;object-fit:contain;border-radius:3px">`:''}
+      ${esc(b.short)}
+    </label>`).join('');
+  openModal({
+    title:id?'แก้ไขผู้ใช้':'เพิ่มผู้ใช้ใหม่',
+    body:`
+      <div class="form-row">
+        <div class="field"><label>Username *</label><input id="u_username" value="${esc(u.username)}" placeholder="username"/></div>
+        <div class="field"><label>Password *</label><input id="u_password" type="text" value="${esc(u.password)}" placeholder="password"/></div>
+      </div>
+      <div class="form-row">
+        <div class="field"><label>ชื่อแสดง</label><input id="u_display" value="${esc(u.displayName||'')}"/></div>
+        <div class="field"><label>บทบาท</label>
+          <select id="u_role">
+            <option value="user" ${u.role!=='admin'?'selected':''}>User</option>
+            <option value="admin" ${u.role==='admin'?'selected':''}>Admin</option>
+          </select>
+        </div>
+      </div>
+      <div class="field" style="margin-top:8px">
+        <label>สิทธิ์เข้าถึงแบรนด์</label>
+        <label style="display:flex;align-items:center;gap:6px;padding:4px 0;cursor:pointer;margin-bottom:6px;border-bottom:1px solid var(--line2)">
+          <input type="checkbox" id="ba_all" ${ (u.brandAccess||[]).includes('all')?'checked':''} onchange="document.querySelectorAll('[id^=ba_]:not(#ba_all)').forEach(c=>c.checked=this.checked)"/>
+          <b>ทุกแบรนด์</b>
+        </label>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:0 16px">${brandChecks}</div>
+      </div>`,
+    onSave:()=>{
+      const username=(document.getElementById('u_username')?.value||'').trim();
+      const password=(document.getElementById('u_password')?.value||'').trim();
+      if(!username||!password){ toast('กรุณาใส่ Username และ Password','err'); return false; }
+      const allChecked=document.getElementById('ba_all')?.checked;
+      const brandAccess=allChecked?['all']:BRANDS.filter(b=>document.getElementById('ba_'+b.id)?.checked).map(b=>b.id);
+      if(!brandAccess.length){ toast('กรุณาเลือกอย่างน้อย 1 แบรนด์','err'); return false; }
+      const role=document.getElementById('u_role')?.value||'user';
+      const displayName=document.getElementById('u_display')?.value||username;
+      const upd={...u,username,password,displayName,role,brandAccess};
+      const idx=DATA.users.findIndex(x=>x.id===upd.id);
+      if(idx>=0) DATA.users[idx]=upd; else DATA.users.push(upd);
+      save(); render(); toast('บันทึกผู้ใช้แล้ว'); return true;
+    }
+  });
+}
+function delUser(id){
+  if(!confirmDel('ยืนยันลบผู้ใช้นี้?')) return;
+  DATA.users=DATA.users.filter(u=>u.id!==id);
+  save(); render(); toast('ลบผู้ใช้แล้ว');
+}
+
+function openModal({title,body,onSave,wide,saveLabel,noFoot}){
   modalState={onSave};
   const m=document.getElementById("modal");
   m.className="modal"+(wide?" wide":"");
   m.innerHTML=`
-    <div class="modal-head"><h3>${esc(title)}</h3><div class="spacer" style="flex:1"></div>
+    <div class="modal-head"><h3>${title}</h3><div class="spacer" style="flex:1"></div>
       <button class="icon-btn" onclick="closeModal()">✕</button></div>
     <div class="modal-body">${body}</div>
-    <div class="modal-foot">
+    ${noFoot?'':
+    `<div class="modal-foot">
       <button class="btn" onclick="closeModal()">ยกเลิก</button>
-      <button class="btn primary" onclick="saveModal()">💾 บันทึก</button>
-    </div>`;
+      <button class="btn primary" onclick="saveModal()">${saveLabel||'💾 บันทึก'}</button>
+    </div>`}`;
   document.getElementById("modalBack").classList.add("open");
 }
 function closeModal(){ document.getElementById("modalBack").classList.remove("open"); modalState=null; }
