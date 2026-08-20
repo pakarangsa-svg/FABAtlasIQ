@@ -388,9 +388,6 @@
         <label>แบรนด์</label>
         <select id="brandFilter" onchange="App.setBrand(this.value)"></select>
       </div>
-      <button class="btn ghost sm" onclick="App.exportData()" title="ส่งออกข้อมูลเป็นไฟล์ JSON">⬇ Export</button>
-      <button class="btn ghost sm" onclick="document.getElementById('importFile').click()" title="นำเข้าข้อมูล">⬆ Import</button>
-      <input type="file" id="importFile" accept="application/json" style="display:none" onchange="App.importData(this.files[0])"/>
     </header>
     <div class="content" id="view"></div>
   </div>
@@ -439,6 +436,7 @@ function blankData(){
     menus:[],       // Food Cost
     projects:[],    // Project
     npd:[],         // NPD KPI projects (Timeline module)
+    cogTargets:{},  // { brandId: targetPct% }
   };
 }
 let DATA = load();
@@ -680,37 +678,84 @@ function render(){
 /* =========================================================================
    VIEW: HOME / DASHBOARD
    ========================================================================= */
+function brandCogTarget(brandId){
+  return DATA.cogTargets[brandId] || 35;
+}
+function openCogTargetSettings(){
+  const body = `<div class="grid" style="grid-template-columns:1fr 1fr;gap:10px 20px">
+    ${BRANDS.map(b=>`
+      <div class="field">
+        <label style="display:flex;align-items:center;gap:6px">
+          ${b.logo?`<img src="${b.logo}" style="width:20px;height:20px;object-fit:contain;border-radius:4px" onerror="this.style.display='none'">`:''}
+          ${esc(b.short)}
+        </label>
+        <div style="display:flex;align-items:center;gap:6px">
+          <input type="number" id="cog_${b.id}" min="0" max="100" step="0.1" value="${brandCogTarget(b.id)}" style="width:90px"/>
+          <span class="muted">%</span>
+        </div>
+      </div>`).join("")}
+  </div>`;
+  openModal({
+    title:"⚙️ ตั้งเป้า %COG ตามแบรนด์",
+    body,
+    onSave:()=>{
+      BRANDS.forEach(b=>{
+        const v=parseFloat(document.getElementById("cog_"+b.id)?.value);
+        if(!isNaN(v)) DATA.cogTargets[b.id]=v;
+      });
+      save(); render(); toast("บันทึกเป้า %COG แล้ว"); return true;
+    }
+  });
+}
 function viewHome(){
   const menus=fMenus();
   const totalMenus=menus.length;
   const avgPct = menus.length ? menus.reduce((s,m)=>s+menuMetrics(m).pct,0)/menus.length : 0;
-  const overTarget = menus.filter(m=>{const x=menuMetrics(m);return x.pct>(m.targetPct||35);}).length;
+  const overTarget = menus.filter(m=>{ const x=menuMetrics(m); return x.pct>brandCogTarget(m.brandId); }).length;
   const rmCount=DATA.materials.length, bomCount=fBoms().length, prjCount=fProjects().length;
+  const activeBrand = DATA.activeBrand;
+  const avgTarget = activeBrand!=='all' ? brandCogTarget(activeBrand) : 35;
 
-  // per-brand summary
+  // per-brand summary (shown when all brands)
   const perBrand = BRANDS.map(b=>{
     const ms=DATA.menus.filter(m=>m.brandId===b.id);
     const avg = ms.length? ms.reduce((s,m)=>s+menuMetrics(m).pct,0)/ms.length : null;
     return {b, count:ms.length, avg};
   });
 
-  // top cost menus
+  // per-category summary (shown when specific brand selected)
+  const catMap={};
+  menus.forEach(m=>{ const c=m.category||'ทั่วไป'; (catMap[c]=catMap[c]||[]).push(m); });
+  const perCat = Object.entries(catMap).map(([name,ms])=>({
+    name, count:ms.length,
+    avg: ms.reduce((s,m)=>s+menuMetrics(m).pct,0)/ms.length
+  })).sort((a,b)=>b.avg-a.avg);
+
+  // top %COG menus
   const ranked = menus.map(m=>({m,x:menuMetrics(m)})).sort((a,b)=>b.x.pct-a.x.pct).slice(0,6);
 
   return `
   <div class="grid cards" style="margin-bottom:22px">
     ${stat("เมนูทั้งหมด", totalMenus, "📊", "รายการในระบบ")}
-    ${stat("Food Cost เฉลี่ย", pct(avgPct), "🎯", avgPct<=35?'<span class="kpi-good">อยู่ในเกณฑ์</span>':'<span class="kpi-bad">สูงกว่าเป้า</span>')}
-    ${stat("เมนูเกินเป้า", overTarget, "⚠️", overTarget?'<span class="kpi-bad">ต้องทบทวน</span>':'<span class="kpi-good">ไม่มี</span>')}
+    ${stat("%COG เฉลี่ย", pct(avgPct), "🎯", avgPct<=avgTarget?'<span class="kpi-good">อยู่ในเกณฑ์</span>':'<span class="kpi-bad">สูงกว่าเป้า</span>')}
+    <div class="card stat" style="position:relative">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <span class="ic">⚠️</span>
+        <button class="icon-btn" onclick="openCogTargetSettings()" title="ตั้งค่าเป้า %COG" style="font-size:13px">⚙️</button>
+      </div>
+      <div class="k">จำนวนเมนู %COG สูงเกินเป้า</div>
+      <div class="v">${overTarget}</div>
+      <div class="d">${overTarget?'<span class="kpi-bad">ต้องทบทวน</span>':'<span class="kpi-good">ไม่มี</span>'}</div>
+    </div>
     ${stat("วัตถุดิบ (RM)", rmCount, "🥩", bomCount+" สูตร BOM · "+prjCount+" โปรเจกต์")}
   </div>
 
   <div class="grid" style="grid-template-columns:1.3fr 1fr;align-items:start">
     <div>
-      <div class="section-title"><h2>เมนูต้นทุนสูงสุด</h2><span class="count">${ranked.length}</span></div>
+      <div class="section-title"><h2>เมนู %COG สูงสุด</h2><span class="count">${ranked.length}</span></div>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>เมนู</th><th>แบรนด์</th><th class="num">ราคาขาย</th><th class="num">ต้นทุน</th><th class="num">Food Cost</th></tr></thead>
+          <thead><tr><th>เมนู</th><th>แบรนด์</th><th class="num">ราคาขาย (Ex-Vat)</th><th class="num">ต้นทุน (บาท)</th><th class="num">%COG</th></tr></thead>
           <tbody>
           ${ranked.length? ranked.map(({m,x})=>`
             <tr style="cursor:pointer" onclick="App.go('foodcost')">
@@ -718,7 +763,7 @@ function viewHome(){
               <td>${brandTag(m.brandId)}</td>
               <td class="num mono">${baht(x.sp)}</td>
               <td class="num mono">${baht(x.cost)}</td>
-              <td class="num">${pctChip(x.pct,m.targetPct)}</td>
+              <td class="num">${pctChip(x.pct,brandCogTarget(m.brandId))}</td>
             </tr>`).join("")
           : `<tr><td colspan="5"><div class="empty"><div class="big">🍽️</div>ยังไม่มีเมนู — เพิ่มที่หน้า Food Cost</div></td></tr>`}
           </tbody>
@@ -727,33 +772,40 @@ function viewHome(){
     </div>
 
     <div>
-      <div class="section-title"><h2>สรุปตามแบรนด์</h2><span class="count">${BRANDS.length}</span></div>
-      <div class="card" style="padding:8px">
-        ${perBrand.map(p=>`
-          <div style="display:flex;align-items:center;gap:10px;padding:10px 8px;border-bottom:1px solid var(--line)">
-            ${p.b.logo
-              ? `<img src="${p.b.logo}" alt="${esc(p.b.short)}" style="width:34px;height:34px;object-fit:contain;border-radius:8px;background:#fff;padding:2px;flex:none" onerror="this.outerHTML='<span class=brand-dot style=background:${p.b.color};width:11px;height:11px></span>'">`
-              : `<span class="brand-dot" style="background:${p.b.color};width:11px;height:11px"></span>`}
-            <div style="flex:1;min-width:0">
-              <div style="font-weight:600;font-size:13px">${esc(p.b.short)}</div>
-              <div class="muted" style="font-size:11px">${p.count} เมนู</div>
-            </div>
-            <div style="text-align:right">
-              ${p.avg!=null?`<span class="${pctClass(p.avg,35)}" style="font-weight:700">${pct(p.avg)}</span>`:'<span class="muted">—</span>'}
-              <div class="muted" style="font-size:10px">เฉลี่ย</div>
-            </div>
-          </div>`).join("")}
-      </div>
-    </div>
-  </div>
-
-  <div style="margin-top:22px">
-    <div class="section-title"><h2>เริ่มต้นใช้งาน</h2></div>
-    <div class="grid cards">
-      ${quickCard("🥩","Cost RM","ตั้งราคาวัตถุดิบ & yield","costrm")}
-      ${quickCard("🧪","Set BOM","สร้างสูตรกลาง / Batch","setbom")}
-      ${quickCard("📊","Food Cost","คำนวณต้นทุนเมนู","foodcost")}
-      ${quickCard("🗂️","Project","จัดกลุ่มเมนูพัฒนาสินค้า","project")}
+      ${activeBrand!=='all' ? `
+        <div class="section-title"><h2>สรุปตามหมวดเมนู</h2><span class="count">${perCat.length}</span></div>
+        <div class="card" style="padding:8px">
+          ${perCat.length ? perCat.map(c=>`
+            <div style="display:flex;align-items:center;gap:10px;padding:10px 8px;border-bottom:1px solid var(--line)">
+              <div style="flex:1;min-width:0">
+                <div style="font-weight:600;font-size:13px">${esc(c.name)}</div>
+                <div class="muted" style="font-size:11px">${c.count} เมนู</div>
+              </div>
+              <div style="text-align:right">
+                <span class="${pctClass(c.avg,avgTarget)}" style="font-weight:700">${pct(c.avg)}</span>
+                <div class="muted" style="font-size:10px">เฉลี่ย</div>
+              </div>
+            </div>`).join("") : '<div class="empty" style="padding:20px">ยังไม่มีเมนูในแบรนด์นี้</div>'}
+        </div>
+      ` : `
+        <div class="section-title"><h2>สรุปตามแบรนด์</h2><span class="count">${BRANDS.length}</span></div>
+        <div class="card" style="padding:8px">
+          ${perBrand.map(p=>`
+            <div style="display:flex;align-items:center;gap:10px;padding:10px 8px;border-bottom:1px solid var(--line)">
+              ${p.b.logo
+                ? `<img src="${p.b.logo}" alt="${esc(p.b.short)}" style="width:34px;height:34px;object-fit:contain;border-radius:8px;background:#fff;padding:2px;flex:none" onerror="this.outerHTML='<span class=brand-dot style=background:${p.b.color};width:11px;height:11px></span>'">`
+                : `<span class="brand-dot" style="background:${p.b.color};width:11px;height:11px"></span>`}
+              <div style="flex:1;min-width:0">
+                <div style="font-weight:600;font-size:13px">${esc(p.b.short)}</div>
+                <div class="muted" style="font-size:11px">${p.count} เมนู · เป้า ${brandCogTarget(p.b.id)}%</div>
+              </div>
+              <div style="text-align:right">
+                ${p.avg!=null?`<span class="${pctClass(p.avg,brandCogTarget(p.b.id))}" style="font-weight:700">${pct(p.avg)}</span>`:'<span class="muted">—</span>'}
+                <div class="muted" style="font-size:10px">เฉลี่ย</div>
+              </div>
+            </div>`).join("")}
+        </div>
+      `}
     </div>
   </div>`;
 }
@@ -848,6 +900,15 @@ function menuForm(m){
     <div class="field"><label>โปรเจกต์</label>${projectSelect("f_project",m.projectId)}</div>
   </div>
   <div class="form-row">
+    <div class="field"><label>หมวดเมนู</label>
+      <input id="f_category" list="catList" value="${esc(m.category||'')}" placeholder="เช่น อาหารจานหลัก, เครื่องดื่ม"/>
+      <datalist id="catList">
+        <option>อาหารจานหลัก</option><option>เครื่องดื่ม</option><option>ของหวาน</option>
+        <option>ของว่าง/ของทานเล่น</option><option>เมนูพิเศษ</option><option>Set Menu</option>
+      </datalist>
+    </div>
+  </div>
+  <div class="form-row">
     <div class="field"><label>ราคาขาย (บาท) *</label><input id="f_price" type="number" min="0" step="0.01" value="${m.sellingPrice||0}" oninput="refreshMenuCalc(window.__m)"/></div>
     <div class="field"><label>เป้า Food Cost (%)</label><input id="f_target" type="number" min="0" step="0.1" value="${m.targetPct||35}" oninput="refreshMenuCalc(window.__m)"/></div>
   </div>
@@ -883,6 +944,7 @@ function collectMenu(m,calcOnly){
   m.code=g("f_code")?.value||"";
   m.brandId=g("f_brand")?.value||m.brandId;
   m.projectId=g("f_project")?.value||"";
+  m.category=(g("f_category")?.value||"").trim();
 }
 
 /* =========================================================================
