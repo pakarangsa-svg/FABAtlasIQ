@@ -127,6 +127,17 @@
   .chip.dot::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
 
   .empty{padding:50px 20px;text-align:center;color:var(--mut2)}
+  .period-banner{
+    display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+    background:linear-gradient(135deg,rgba(76,141,255,.07),rgba(155,123,255,.07));
+    border:1px solid rgba(76,141,255,.18);border-radius:10px;
+    padding:10px 16px;font-size:13px;margin-bottom:18px;
+  }
+  .period-banner.warn{background:rgba(240,165,0,.07);border-color:rgba(240,165,0,.28)}
+  .dot-sep{color:var(--mut2)}
+  .delta-up{color:var(--red);font-size:12px;font-weight:700}
+  .delta-dn{color:var(--green);font-size:12px;font-weight:700}
+  .delta-eq{color:var(--mut2);font-size:12px}
   .empty .big{font-size:34px;margin-bottom:10px;opacity:.6}
 
   /* toolbar */
@@ -416,8 +427,9 @@ const BRANDS = [
 ];
 
 const NAV = [
-  { id:"home",     label:"หน้าหลัก",  en:"Home",      ic:"🏠", sub:"ภาพรวมระบบต้นทุนอาหาร" },
-  { id:"foodcost", label:"Food Cost", en:"Food Cost", ic:"📊", sub:"คำนวณ % ต้นทุนอาหารต่อเมนู" },
+  { id:"home",      label:"หน้าหลัก",  en:"Home",       ic:"🏠", sub:"ภาพรวมระบบต้นทุนอาหาร" },
+  { id:"dashboard", label:"Dashboard", en:"Dashboard",  ic:"📈", sub:"วิเคราะห์ต้นทุนเปรียบเทียบรายเดือน" },
+  { id:"foodcost",  label:"Food Cost", en:"Food Cost",  ic:"📊", sub:"คำนวณ % ต้นทุนอาหารต่อเมนู" },
   { id:"bom",      label:"BOM",       en:"BOM",       ic:"📋", sub:"สูตรกลาง / Bill of Materials" },
   { id:"setbom",   label:"Set BOM",   en:"Set BOM",   ic:"🧪", sub:"สร้าง / แก้ไขสูตร BOM" },
   { id:"project",  label:"Project",   en:"Project",   ic:"🗂️", sub:"โครงการ / ชุดเมนูพัฒนาสินค้า" },
@@ -436,7 +448,8 @@ function blankData(){
     menus:[],       // Food Cost
     projects:[],    // Project
     npd:[],         // NPD KPI projects (Timeline module)
-    cogTargets:{},  // { brandId: targetPct% }
+    cogTargets:{},          // { brandId: targetPct% }
+    monthlySnapshots:[],    // [{ id, month, capturedDate, label, rmPrices:{}, menuCosts:{} }]
   };
 }
 let DATA = load();
@@ -668,11 +681,271 @@ function renderTop(){
 }
 function render(){
   const v=document.getElementById("view");
-  v.style.background = App.page==='timeline' ? '' : '';
   v.innerHTML = ({
-    home:viewHome, foodcost:viewFoodCost, bom:viewBom,
+    home:viewHome, dashboard:viewDashboard, foodcost:viewFoodCost, bom:viewBom,
     setbom:viewSetBom, project:viewProject, timeline:viewTimeline, costrm:viewCostRM
   }[App.page]||viewHome)();
+}
+
+/* =========================================================================
+   MONTHLY SNAPSHOT HELPERS
+   ========================================================================= */
+const TH_MONTHS = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน',
+                   'กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+function thaiMonth(yyyymm){
+  if(!yyyymm) return '—';
+  const [y,m] = yyyymm.split('-');
+  return TH_MONTHS[parseInt(m,10)-1]+' '+(parseInt(y,10)+543);
+}
+function captureSnapshot(date){
+  const d = date || new Date().toISOString().slice(0,10);
+  const month = d.slice(0,7);
+  const rmPrices={};
+  DATA.materials.forEach(r=>{ rmPrices[r.id]=r.purchasePrice; });
+  const menuCosts={};
+  DATA.menus.forEach(m=>{
+    const x=menuMetrics(m);
+    menuCosts[m.id]={cost:x.cost,pct:x.pct,sp:x.sp,name:m.name,brandId:m.brandId,category:m.category||''};
+  });
+  const snap={id:uid('snap'),month,capturedDate:d,label:thaiMonth(month),rmPrices,menuCosts};
+  const idx=DATA.monthlySnapshots.findIndex(s=>s.month===month);
+  if(idx>=0) DATA.monthlySnapshots[idx]=snap; else DATA.monthlySnapshots.push(snap);
+  DATA.monthlySnapshots.sort((a,b)=>a.month.localeCompare(b.month));
+  // reset dashboard to show latest
+  dashCurrIdx = DATA.monthlySnapshots.length-1;
+  dashPrevIdx = DATA.monthlySnapshots.length-2;
+  save(); toast('บันทึกข้อมูลเดือน'+snap.label+'แล้ว'); render();
+}
+function openCaptureModal(){
+  const today=new Date().toISOString().slice(0,10);
+  openModal({
+    title:'📅 บันทึกข้อมูลประจำเดือน',
+    body:`<p style="color:var(--mut);font-size:13px;margin-bottom:16px">ระบบบันทึกราคาวัตถุดิบและต้นทุนเมนู ณ วันที่เลือก เป็น Snapshot ประจำเดือน</p>
+    <div class="field"><label>วันที่อ้างอิงราคา RM</label><input type="date" id="snapDate" value="${today}"/></div>`,
+    onSave:()=>{ captureSnapshot(document.getElementById('snapDate')?.value||today); return true; }
+  });
+}
+
+/* =========================================================================
+   VIEW: DASHBOARD — MoM COST ANALYSIS
+   ========================================================================= */
+let dashBrand='all', dashCurrIdx=-1, dashPrevIdx=-1;
+function viewDashboard(){
+  const snaps=DATA.monthlySnapshots;
+  if(snaps.length===0) return `
+    <div style="text-align:center;padding:80px 20px">
+      <div style="font-size:52px;margin-bottom:16px">📅</div>
+      <h2 style="margin-bottom:8px">ยังไม่มีข้อมูลประจำเดือน</h2>
+      <p style="color:var(--mut);margin-bottom:24px">กด "บันทึกข้อมูลเดือนนี้" เพื่อเริ่มต้นติดตามต้นทุนรายเดือน</p>
+      <button class="btn primary" onclick="openCaptureModal()">📅 บันทึกข้อมูลเดือนนี้</button>
+    </div>`;
+
+  // normalise indices
+  if(dashCurrIdx<0||dashCurrIdx>=snaps.length) dashCurrIdx=snaps.length-1;
+  if(dashPrevIdx<0||dashPrevIdx>=snaps.length) dashPrevIdx=snaps.length>=2?snaps.length-2:-1;
+
+  const currSnap=snaps[dashCurrIdx];
+  const prevSnap=dashPrevIdx>=0?snaps[dashPrevIdx]:null;
+  const brand=dashBrand;
+  const cogTarget=brand!=='all'?brandCogTarget(brand):35;
+
+  // helpers
+  const deltaChip=d=>{
+    if(d===null||d===undefined) return '<span class="muted">—</span>';
+    if(Math.abs(d)<0.05) return '<span class="delta-eq">—</span>';
+    const cl=d>0?'delta-up':'delta-dn';
+    return `<span class="${cl}">${d>0?'▲':'▼'}${Math.abs(d).toFixed(1)}%</span>`;
+  };
+  const movIcon=d=>{
+    if(d===null) return '🆕';
+    if(Math.abs(d)<0.5) return '➡️';
+    if(d>3) return '🔴'; if(d>0) return '🟠';
+    if(d<-3) return '🟢'; return '🟡';
+  };
+  const movLabel=d=>{
+    if(d===null) return '<span class="chip">เมนูใหม่</span>';
+    if(Math.abs(d)<0.5) return '<span class="chip">คงที่</span>';
+    if(d>3)  return '<span class="chip red">ต้นทุนขึ้นมาก</span>';
+    if(d>0)  return '<span class="chip amber">ต้นทุนขึ้น</span>';
+    if(d<-3) return '<span class="chip green">ต้นทุนลดมาก</span>';
+    return '<span class="chip green">ต้นทุนลด</span>';
+  };
+
+  // filter menu entries by brand
+  const currEntries=Object.entries(currSnap.menuCosts)
+    .filter(([,mc])=>brand==='all'||mc.brandId===brand)
+    .map(([id,mc])=>({id,...mc}));
+  const prevMap=prevSnap?Object.fromEntries(
+    Object.entries(prevSnap.menuCosts).filter(([,mc])=>brand==='all'||mc.brandId===brand)
+  ):{};
+
+  // KPI
+  const avgCurr=currEntries.length?currEntries.reduce((s,m)=>s+m.pct,0)/currEntries.length:0;
+  const prevVals=Object.values(prevMap);
+  const avgPrev=prevVals.length?prevVals.reduce((s,m)=>s+m.pct,0)/prevVals.length:null;
+  const overCurr=currEntries.filter(m=>m.pct>cogTarget).length;
+  const overPrev=prevVals.length?prevVals.filter(m=>m.pct>cogTarget).length:null;
+
+  // RM price changes
+  const rmChanges=[];
+  if(prevSnap){
+    DATA.materials.forEach(rm=>{
+      const c=currSnap.rmPrices[rm.id], p=prevSnap.rmPrices[rm.id];
+      if(c==null||p==null||Math.abs(c-p)<0.001) return;
+      const deltaPct=(c-p)/p*100;
+      const affected=DATA.menus
+        .filter(m=>(brand==='all'||m.brandId===brand)&&(m.items||[]).some(it=>it.type==='rm'&&it.ref===rm.id))
+        .map(m=>m.name);
+      rmChanges.push({rm,currPrice:c,prevPrice:p,deltaPct,affected});
+    });
+    rmChanges.sort((a,b)=>Math.abs(b.deltaPct)-Math.abs(a.deltaPct));
+  }
+
+  // movement
+  const movement=currEntries.map(mc=>{
+    const prev=prevMap[mc.id];
+    const delta=prev!=null?mc.pct-prev.pct:null;
+    const menu=DATA.menus.find(m=>m.id===mc.id);
+    return {...mc,prevPct:prev?.pct??null,delta,menuName:menu?.name||mc.name};
+  }).sort((a,b)=>{
+    const ad=a.delta==null?-99:Math.abs(a.delta);
+    const bd=b.delta==null?-99:Math.abs(b.delta);
+    return bd-ad;
+  });
+
+  // top/bottom 5
+  const sorted=[...currEntries].sort((a,b)=>b.pct-a.pct);
+  const top5=sorted.slice(0,5);
+  const bot5=[...sorted].reverse().slice(0,5);
+
+  const menuRow=(m,showDelta)=>{
+    const prev=prevMap[m.id];
+    const delta=showDelta&&prev!=null?m.pct-prev.pct:null;
+    const menu=DATA.menus.find(x=>x.id===m.id);
+    return `<tr>
+      <td><b style="font-size:13px">${esc(menu?.name||m.name)}</b><br><span style="font-size:11px">${brandTag(m.brandId)}</span></td>
+      <td class="num"><span class="${pctClass(m.pct,cogTarget)}" style="font-weight:700">${pct(m.pct)}</span></td>
+      <td class="num">${deltaChip(delta)}</td>
+    </tr>`;
+  };
+
+  const snapOpts=snaps.map((s,i)=>`<option value="${i}" ${i===dashCurrIdx?'selected':''}>${s.label}</option>`).join('');
+  const prevOpts=`<option value="-1">— ไม่เปรียบเทียบ —</option>`+
+    snaps.map((s,i)=>`<option value="${i}" ${i===dashPrevIdx?'selected':''}>${s.label}</option>`).join('');
+
+  return `
+  <div class="toolbar" style="flex-wrap:wrap;gap:10px;margin-bottom:4px">
+    <div style="display:flex;align-items:center;gap:8px">
+      <label style="font-size:11px;color:var(--mut2);text-transform:uppercase;letter-spacing:.6px">แบรนด์</label>
+      <select onchange="dashBrand=this.value;render()">
+        <option value="all" ${brand==='all'?'selected':''}>ทุกแบรนด์</option>
+        ${BRANDS.map(b=>`<option value="${b.id}" ${brand===b.id?'selected':''}>${esc(b.short)}</option>`).join('')}
+      </select>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px">
+      <label style="font-size:11px;color:var(--mut2)">เดือนอ้างอิง</label>
+      <select onchange="dashCurrIdx=+this.value;render()">${snapOpts}</select>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px">
+      <label style="font-size:11px;color:var(--mut2)">เปรียบเทียบกับ</label>
+      <select onchange="dashPrevIdx=+this.value;render()">${prevOpts}</select>
+    </div>
+    <div class="spacer"></div>
+    <button class="btn primary" onclick="openCaptureModal()">📅 บันทึกข้อมูลเดือนนี้</button>
+  </div>
+
+  <div class="period-banner">
+    <span>📅 ข้อมูลประจำเดือน <b>${currSnap.label}</b></span>
+    <span class="dot-sep">·</span>
+    <span>อ้างอิงราคาวัตถุดิบวันที่ <b>${currSnap.capturedDate}</b></span>
+    ${prevSnap?`<span class="dot-sep">·</span><span class="muted">เปรียบเทียบกับ <b>${prevSnap.label}</b></span>`:''}
+  </div>
+
+  <div class="grid cards" style="margin-bottom:22px">
+    <div class="card stat"><span class="ic">🎯</span>
+      <div class="k">%COG เฉลี่ย</div>
+      <div class="v">${pct(avgCurr)}</div>
+      <div class="d">${avgPrev!==null?deltaChip(avgCurr-avgPrev)+'<span class="muted" style="font-size:11px"> vs เดือนก่อน</span>':'<span class="muted">—</span>'}</div>
+    </div>
+    <div class="card stat"><span class="ic">⚠️</span>
+      <div class="k">เมนูเกินเป้า</div>
+      <div class="v">${overCurr}</div>
+      <div class="d">${overPrev!==null?deltaChip(overCurr-overPrev)+'<span class="muted" style="font-size:11px"> vs เดือนก่อน</span>':'<span class="muted">—</span>'}</div>
+    </div>
+    <div class="card stat"><span class="ic">🥩</span>
+      <div class="k">RM ปรับราคา</div>
+      <div class="v">${rmChanges.length}</div>
+      <div class="d">${rmChanges.length?'<span class="kpi-bad">มีการเปลี่ยนแปลง</span>':prevSnap?'<span class="kpi-good">คงที่</span>':'<span class="muted">ไม่มีเดือนเปรียบเทียบ</span>'}</div>
+    </div>
+    <div class="card stat"><span class="ic">📊</span>
+      <div class="k">เมนูในช่วงนี้</div>
+      <div class="v">${currEntries.length}</div>
+      <div class="d">${brand==='all'?'ทุกแบรนด์':BRANDS.find(b=>b.id===brand)?.short||brand}</div>
+    </div>
+  </div>
+
+  ${rmChanges.length?`
+  <div class="section-title" style="margin-bottom:10px"><h2>🔺 สาเหตุต้นทุนเปลี่ยนแปลง · ราคาวัตถุดิบ</h2><span class="count">${rmChanges.length}</span></div>
+  <div class="table-wrap" style="margin-bottom:22px">
+    <table>
+      <thead><tr><th>วัตถุดิบ</th><th>หมวด</th><th class="num">ราคาเดิม (${prevSnap?.label||'—'})</th><th class="num">ราคาใหม่ (${currSnap.label})</th><th class="num">เปลี่ยน %</th><th>เมนูที่กระทบ</th></tr></thead>
+      <tbody>${rmChanges.map(r=>`<tr>
+        <td><b>${esc(r.rm.name)}</b></td>
+        <td><span class="chip">${esc(r.rm.category)}</span></td>
+        <td class="num mono">${baht(r.prevPrice)}</td>
+        <td class="num mono">${baht(r.currPrice)}</td>
+        <td class="num">${deltaChip(r.deltaPct)}</td>
+        <td style="font-size:12px;color:var(--mut)">${r.affected.slice(0,3).map(n=>esc(n)).join(', ')}${r.affected.length>3?' +'+( r.affected.length-3)+' อื่นๆ':''}</td>
+      </tr>`).join('')}</tbody>
+    </table>
+  </div>`
+  :prevSnap?`<div class="card" style="padding:13px 18px;margin-bottom:22px;display:flex;align-items:center;gap:10px">
+    <span style="font-size:20px">✅</span><span style="color:var(--mut)">ราคาวัตถุดิบไม่มีการเปลี่ยนแปลงระหว่างสองช่วงเวลานี้</span>
+  </div>`:''
+  }
+
+  <div class="grid" style="grid-template-columns:1fr 1fr;gap:22px;margin-bottom:22px">
+    <div>
+      <div class="section-title"><h2>🔴 %COG สูงสุด 5 อันดับ</h2></div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>เมนู</th><th class="num">%COG</th><th class="num">เปลี่ยน</th></tr></thead>
+        <tbody>${top5.length?top5.map(m=>menuRow(m,true)).join(''):'<tr><td colspan="3"><div class="empty">ไม่มีข้อมูล</div></td></tr>'}</tbody>
+      </table></div>
+    </div>
+    <div>
+      <div class="section-title"><h2>🟢 %COG ต่ำสุด 5 อันดับ</h2></div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>เมนู</th><th class="num">%COG</th><th class="num">เปลี่ยน</th></tr></thead>
+        <tbody>${bot5.length?bot5.map(m=>menuRow(m,true)).join(''):'<tr><td colspan="3"><div class="empty">ไม่มีข้อมูล</div></td></tr>'}</tbody>
+      </table></div>
+    </div>
+  </div>
+
+  <div class="section-title" style="margin-bottom:10px">
+    <h2>📈 Movement ต้นทุนเมนู</h2><span class="count">${movement.length}</span>
+    <span class="muted" style="font-size:11px;margin-left:8px">🔴ขึ้นมาก &nbsp;🟠ขึ้น &nbsp;🟡ลดลง &nbsp;🟢ลดมาก &nbsp;➡️คงที่</span>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr>
+        <th></th><th>เมนู</th><th>แบรนด์</th><th>หมวด</th>
+        ${prevSnap?`<th class="num">${prevSnap.label}</th>`:''}
+        <th class="num">${currSnap.label}</th>
+        ${prevSnap?'<th class="num">เปลี่ยนแปลง</th>':''}
+        <th>สถานะ</th>
+      </tr></thead>
+      <tbody>${movement.length?movement.map(m=>`<tr>
+        <td style="text-align:center;font-size:15px">${movIcon(m.delta)}</td>
+        <td><b>${esc(m.menuName)}</b></td>
+        <td>${brandTag(m.brandId)}</td>
+        <td><span class="chip" style="font-size:10px">${esc(m.category||'ทั่วไป')}</span></td>
+        ${prevSnap?`<td class="num mono">${m.prevPct!==null?pct(m.prevPct):'<span class="muted">—</span>'}</td>`:''}
+        <td class="num"><span class="${pctClass(m.pct,cogTarget)}" style="font-weight:700">${pct(m.pct)}</span></td>
+        ${prevSnap?`<td class="num">${deltaChip(m.delta)}</td>`:''}
+        <td>${movLabel(m.delta)}</td>
+      </tr>`).join(''):'<tr><td colspan="8"><div class="empty">ไม่มีข้อมูล</div></td></tr>'}</tbody>
+    </table>
+  </div>`;
 }
 
 /* =========================================================================
@@ -734,7 +1007,23 @@ function viewHome(){
   // top %COG menus
   const ranked = menus.map(m=>({m,x:menuMetrics(m)})).sort((a,b)=>b.x.pct-a.x.pct).slice(0,6);
 
+  const latestSnap = DATA.monthlySnapshots.length>0 ? DATA.monthlySnapshots[DATA.monthlySnapshots.length-1] : null;
+  const periodBannerHome = latestSnap
+    ? `<div class="period-banner">
+        <span>📅 ข้อมูลประจำเดือน <b>${latestSnap.label}</b></span>
+        <span class="dot-sep">·</span>
+        <span>อ้างอิงราคาวัตถุดิบวันที่ <b>${latestSnap.capturedDate}</b></span>
+        <div class="spacer"></div>
+        <button class="btn sm" onclick="App.go('dashboard')">ดูการวิเคราะห์ →</button>
+       </div>`
+    : `<div class="period-banner warn">
+        <span>⚠️ ยังไม่มีข้อมูลประจำเดือน — กด "บันทึก" เพื่อเริ่มติดตามต้นทุนรายเดือน</span>
+        <div class="spacer"></div>
+        <button class="btn sm" onclick="openCaptureModal()">📅 บันทึกข้อมูลเดือนนี้</button>
+       </div>`;
+
   return `
+  ${periodBannerHome}
   <div class="grid cards" style="margin-bottom:22px">
     ${stat("เมนูทั้งหมด", totalMenus, "📊", "รายการในระบบ")}
     ${stat("%COG เฉลี่ย", pct(avgPct), "🎯", avgPct<=avgTarget?'<span class="kpi-good">อยู่ในเกณฑ์</span>':'<span class="kpi-bad">สูงกว่าเป้า</span>')}
