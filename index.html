@@ -166,11 +166,13 @@
   .field input,.field select,.field textarea{width:100%}
 
   .line-items{border:1px solid var(--line);border-radius:10px;overflow:hidden;margin-top:6px}
-  .li-head,.li-row{display:grid;grid-template-columns:1fr 90px 80px 110px 36px;gap:8px;align-items:center;padding:8px 10px}
+  .li-head,.li-row{display:grid;grid-template-columns:54px 1fr 80px 68px 80px 90px 30px;gap:6px;align-items:center;padding:8px 10px}
   .li-head{background:var(--panel2);font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--mut2)}
   .li-row{border-top:1px solid var(--line)}
   .li-row select,.li-row input{padding:7px 9px;font-size:12.5px}
   .li-row .cost{text-align:right;font-variant-numeric:tabular-nums;color:var(--mut)}
+  .li-code{font-size:10px;color:var(--mut2);font-family:monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .li-ucost{text-align:right;font-size:11px;color:var(--mut2);font-variant-numeric:tabular-nums}
 
   .summary-box{display:flex;gap:18px;flex-wrap:wrap;background:var(--panel2);border:1px solid var(--line);
     border-radius:10px;padding:14px 18px;margin-top:16px}
@@ -349,6 +351,7 @@
     .app{grid-template-columns:1fr}
     .sidebar{position:fixed;left:-260px;z-index:50;transition:.2s;width:240px}
     .sidebar.show{left:0}
+    .li-code,.li-ucost{display:none}
     .li-head,.li-row{grid-template-columns:1fr 70px 60px 90px 30px}
     .topbar{padding:10px 14px;gap:8px;flex-wrap:wrap}
     .topbar .btn.ghost{font-size:11px;padding:5px 8px}
@@ -370,6 +373,7 @@
     .topbar h1{font-size:14px}
   }
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
 <div class="app">
@@ -749,6 +753,44 @@ function openBrandPickerModal(){
   });
 }
 
+function doSignUp(){
+  closeModal();
+  setTimeout(()=>{
+    openModal({
+      title:'📝 สมัครใช้งาน',
+      saveLabel:'✅ สมัครใช้งาน',
+      body:`
+        <div class="form-row">
+          <div class="field"><label>Username *</label><input id="su_user" placeholder="ภาษาอังกฤษ ไม่มีช่องว่าง" autocomplete="username"/></div>
+          <div class="field"><label>ชื่อที่แสดง *</label><input id="su_name" placeholder="ชื่อ-นามสกุล หรือชื่อเล่น"/></div>
+        </div>
+        <div class="form-row">
+          <div class="field"><label>Password *</label><input id="su_pass" type="password" placeholder="อย่างน้อย 6 ตัวอักษร" autocomplete="new-password"/></div>
+          <div class="field"><label>ยืนยัน Password *</label><input id="su_pass2" type="password" placeholder="พิมพ์อีกครั้ง" autocomplete="new-password"/></div>
+        </div>
+        <div id="su_err" style="color:var(--red);font-size:13px;margin-top:4px;display:none"></div>
+        <div class="hint" style="margin-top:10px;padding:8px;background:var(--panel2);border-radius:8px">
+          ℹ️ หลังสมัครแล้ว <b>Admin</b> จะกำหนดสิทธิ์เข้าถึงแบรนด์ให้ในหน้า Admin
+        </div>`,
+      onSave:()=>{
+        const username=(document.getElementById('su_user')?.value||'').trim().replace(/\s+/g,'');
+        const displayName=(document.getElementById('su_name')?.value||'').trim();
+        const pass=document.getElementById('su_pass')?.value||'';
+        const pass2=document.getElementById('su_pass2')?.value||'';
+        const err=document.getElementById('su_err');
+        const showErr=msg=>{err.textContent=msg;err.style.display='block';return false;};
+        if(!username) return showErr('กรุณาใส่ Username');
+        if(username.length<3) return showErr('Username ต้องมีอย่างน้อย 3 ตัวอักษร');
+        if(DATA.users.find(u=>u.username===username)) return showErr('Username นี้ถูกใช้แล้ว กรุณาเลือกใหม่');
+        if(!pass||pass.length<6) return showErr('Password ต้องมีอย่างน้อย 6 ตัวอักษร');
+        if(pass!==pass2) return showErr('Password ไม่ตรงกัน กรุณาตรวจสอบ');
+        DATA.users.push({id:uid('usr'),username,password:pass,displayName:displayName||username,role:'user',brandAccess:[]});
+        save(); toast('สมัครใช้งานสำเร็จ! กรุณาติดต่อ Admin เพื่อกำหนดสิทธิ์แบรนด์');
+        return true;
+      }
+    });
+  },80);
+}
 function doLoginFlow(){
   openModal({
     title:'🔐 เข้าสู่ระบบ',
@@ -756,7 +798,10 @@ function doLoginFlow(){
     body:`
       <div class="field"><label>Username</label><input id="loginUser" placeholder="username" autocomplete="username" style="font-size:15px"/></div>
       <div class="field"><label>Password</label><input id="loginPass" type="password" placeholder="password" autocomplete="current-password" style="font-size:15px"/></div>
-      <div id="loginErr" style="color:var(--red);font-size:13px;margin-top:6px;display:none">Username หรือ Password ไม่ถูกต้อง</div>`,
+      <div id="loginErr" style="color:var(--red);font-size:13px;margin-top:6px;display:none">Username หรือ Password ไม่ถูกต้อง</div>
+      <div style="text-align:center;margin-top:14px;font-size:13px;color:var(--mut)">
+        ยังไม่มีบัญชี? <a href="#" onclick="doSignUp();return false;" style="color:var(--blue);font-weight:600;text-decoration:none">สมัครใช้งาน →</a>
+      </div>`,
     onSave:()=>{
       const u=document.getElementById('loginUser')?.value.trim();
       const p=document.getElementById('loginPass')?.value;
@@ -1223,6 +1268,9 @@ function viewFoodCost(){
   <div class="toolbar">
     <input class="search" placeholder="🔍 ค้นหาเมนู..." value="${esc(menuSearch)}" oninput="menuSearch=this.value;render()"/>
     <div class="spacer"></div>
+    <button class="btn" onclick="xlsDownloadTemplate('foodcost')" title="ดาวน์โหลด Template Excel">📄 Template</button>
+    <button class="btn" onclick="importFoodCostXLS()">📥 Import</button>
+    <button class="btn" onclick="exportFoodCostXLS()">📤 Export</button>
     <button class="btn primary" onclick="editMenu()">＋ เพิ่มเมนู</button>
   </div>
   <div class="table-wrap">
@@ -1346,7 +1394,7 @@ function lineItemsEditor(obj,kind){
   const rows=(obj.items||[]).map((it,i)=>lineRow(it,i,kind)).join("");
   return `
   <div class="line-items" id="liWrap">
-    <div class="li-head"><div>วัตถุดิบ / สูตร</div><div>จำนวน</div><div>หน่วย</div><div style="text-align:right">ต้นทุน</div><div></div></div>
+    <div class="li-head"><div>รหัส</div><div>วัตถุดิบ / สูตร</div><div>จำนวน</div><div>หน่วย</div><div class="li-ucost" style="text-align:right">ราคา/หน่วย</div><div style="text-align:right">ต้นทุน</div><div></div></div>
     <div id="liRows">${rows||""}</div>
   </div>
   <div style="margin-top:10px;display:flex;gap:8px">
@@ -1357,11 +1405,18 @@ function lineItemsEditor(obj,kind){
 function lineRow(it,i,kind){
   const opts = it.type==="rm" ? rmOptions(it.ref) : bomOptions(it.ref);
   const c = lineCost(it);
+  let code='', unitCostVal=0;
+  if(it.ref){
+    if(it.type==='rm'){ const mat=getMaterial(it.ref); code=mat?.code||''; unitCostVal=rmCostPerUnit(mat); }
+    else { const b=getBom(it.ref); code=b?.code||''; unitCostVal=bomCostPerUnit(b); }
+  }
   return `
   <div class="li-row" data-i="${i}">
+    <div class="li-code">${esc(code)}</div>
     <select onchange="lineChanged(${i},'ref',this.value,'${kind}')">${opts}</select>
     <input type="number" min="0" step="any" value="${it.qty||0}" onchange="lineChanged(${i},'qty',this.value,'${kind}')" oninput="lineChanged(${i},'qty',this.value,'${kind}',true)"/>
     <input value="${esc(it.unit||"")}" onchange="lineChanged(${i},'unit',this.value,'${kind}')" placeholder="หน่วย"/>
+    <div class="cost li-ucost">฿${baht(unitCostVal)}</div>
     <div class="cost">฿${baht(c)}</div>
     <button class="icon-btn" onclick="delLine(${i},'${kind}')">✕</button>
   </div>`;
@@ -1421,6 +1476,9 @@ function viewBom(){
   <div class="toolbar">
     <input class="search" placeholder="🔍 ค้นหาสูตร BOM..." value="${esc(bomSearch)}" oninput="bomSearch=this.value;render()"/>
     <div class="spacer"></div>
+    <button class="btn" onclick="xlsDownloadTemplate('bom')" title="ดาวน์โหลด Template Excel">📄 Template</button>
+    <button class="btn" onclick="importBomXLS()">📥 Import</button>
+    <button class="btn" onclick="exportBomXLS()">📤 Export</button>
     <button class="btn primary" onclick="App.go('setbom')">＋ สร้างสูตร BOM</button>
   </div>
   <div class="table-wrap">
@@ -1469,6 +1527,11 @@ function viewSetBom(){
   const authBlock=requireAuthPage(); if(authBlock!==null) return authBlock;
   const list=DATA.boms.filter(b=>b.brandId===protectedBrand);
   return `
+  <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+    <button class="btn" onclick="xlsDownloadTemplate('bom')">📄 Template</button>
+    <button class="btn" onclick="importBomXLS()">📥 Import BOM</button>
+    <button class="btn" onclick="exportBomXLS()">📤 Export BOM</button>
+  </div>
   <div class="grid" style="grid-template-columns:300px 1fr;align-items:start">
     <div>
       <div class="section-title"><h2>สูตรทั้งหมด</h2><span class="count">${list.length}</span></div>
@@ -2415,6 +2478,207 @@ let modalState=null;
 /* =========================================================================
    VIEW: ADMIN — จัดการ Users & สิทธิ์
    ========================================================================= */
+/* =========================================================================
+   EXCEL EXPORT / IMPORT / TEMPLATE (SheetJS)
+   ========================================================================= */
+function xlsDownloadTemplate(type){
+  if(!window.XLSX){ toast('กำลังโหลด SheetJS...','warn'); return; }
+  const wb=XLSX.utils.book_new();
+  if(type==='foodcost'){
+    const ws1=XLSX.utils.aoa_to_sheet([
+      ['รหัสเมนู','ชื่อเมนู','หมวดหมู่','ราคาขาย (บาท, ไม่รวม VAT)','เป้า Food Cost %'],
+      ['M001','ต้มยำกุ้ง','อาหารจานหลัก',189,35],
+      ['M002','ข้าวผัดกุ้ง','อาหารจานหลัก',120,30],
+    ]);
+    ws1['!cols']=[{wch:12},{wch:25},{wch:18},{wch:24},{wch:18}];
+    const ws2=XLSX.utils.aoa_to_sheet([
+      ['รหัสเมนู','รหัสวัตถุดิบ (จากหน้า Cost RM)','จำนวน','หน่วย'],
+      ['M001','MAT001',200,'g'],
+      ['M001','MAT002',50,'ml'],
+    ]);
+    ws2['!cols']=[{wch:12},{wch:28},{wch:10},{wch:10}];
+    XLSX.utils.book_append_sheet(wb,ws1,'เมนู');
+    XLSX.utils.book_append_sheet(wb,ws2,'วัตถุดิบ');
+    XLSX.writeFile(wb,'template_foodcost.xlsx');
+  } else if(type==='bom'){
+    const ws1=XLSX.utils.aoa_to_sheet([
+      ['รหัส BOM','ชื่อสูตร','ปริมาณผลผลิต','หน่วยผลผลิต','Yield %','หมายเหตุ'],
+      ['BOM001','น้ำต้มยำ (Stock)',5000,'ml',95,'เคี่ยว 2 ชม.'],
+    ]);
+    ws1['!cols']=[{wch:12},{wch:25},{wch:16},{wch:14},{wch:10},{wch:20}];
+    const ws2=XLSX.utils.aoa_to_sheet([
+      ['รหัส BOM','รหัสวัตถุดิบ (จากหน้า Cost RM)','จำนวน','หน่วย'],
+      ['BOM001','MAT001',500,'g'],
+    ]);
+    ws2['!cols']=[{wch:12},{wch:28},{wch:10},{wch:10}];
+    XLSX.utils.book_append_sheet(wb,ws1,'BOM');
+    XLSX.utils.book_append_sheet(wb,ws2,'ส่วนผสม');
+    XLSX.writeFile(wb,'template_bom.xlsx');
+  }
+  toast('ดาวน์โหลด Template แล้ว');
+}
+
+function exportFoodCostXLS(){
+  if(!window.XLSX){ toast('SheetJS ยังไม่โหลด','err'); return; }
+  const wb=XLSX.utils.book_new();
+  const brand=BRANDS.find(b=>b.id===protectedBrand);
+  const menus=DATA.menus.filter(m=>m.brandId===protectedBrand);
+  const ws1=XLSX.utils.aoa_to_sheet([
+    ['รหัสเมนู','ชื่อเมนู','หมวดหมู่','แบรนด์','ราคาขาย (Ex-VAT)','ราคาขาย (Inc.VAT 7%)','เป้า FC%','ต้นทุนรวม','Food Cost%','กำไร GP (บาท)','กำไร GP%'],
+    ...menus.map(m=>{
+      const x=menuMetrics(m);
+      return [m.code||'',m.name,m.category||'',brand?.short||m.brandId,
+              m.sellingPrice,+((m.sellingPrice||0)*1.07).toFixed(2),m.targetPct||35,
+              +x.cost.toFixed(2),+x.pct.toFixed(2),+x.gp.toFixed(2),+x.gpPct.toFixed(2)];
+    })
+  ]);
+  ws1['!cols']=[{wch:10},{wch:26},{wch:16},{wch:12},{wch:16},{wch:18},{wch:10},{wch:14},{wch:12},{wch:16},{wch:10}];
+  XLSX.utils.book_append_sheet(wb,ws1,'Food Cost');
+
+  const ingData=[['รหัสเมนู','ชื่อเมนู','ประเภท','รหัสวัตถุดิบ/BOM','ชื่อวัตถุดิบ/สูตร','จำนวน','หน่วย','ราคา/หน่วย','ต้นทุน']];
+  for(const m of menus){
+    for(const it of (m.items||[])){
+      let refCode='',refName='',uc=0;
+      if(it.type==='rm'){ const mat=getMaterial(it.ref); refCode=mat?.code||''; refName=mat?.name||''; uc=rmCostPerUnit(mat); }
+      else { const b=getBom(it.ref); refCode=b?.code||''; refName=b?.name||''; uc=bomCostPerUnit(b); }
+      ingData.push([m.code||'',m.name,it.type==='rm'?'RM':'BOM',refCode,refName,it.qty,it.unit,+uc.toFixed(4),+lineCost(it).toFixed(2)]);
+    }
+  }
+  const ws2=XLSX.utils.aoa_to_sheet(ingData);
+  ws2['!cols']=[{wch:10},{wch:25},{wch:8},{wch:14},{wch:25},{wch:10},{wch:8},{wch:12},{wch:12}];
+  XLSX.utils.book_append_sheet(wb,ws2,'รายการวัตถุดิบ');
+
+  XLSX.writeFile(wb,`FoodCost_${brand?.short||protectedBrand}_${new Date().toISOString().slice(0,10)}.xlsx`);
+  toast('Export Food Cost สำเร็จ');
+}
+
+function importFoodCostXLS(){
+  if(!window.XLSX){ toast('SheetJS ยังไม่โหลด','err'); return; }
+  const inp=document.createElement('input'); inp.type='file'; inp.accept='.xlsx,.xls,.csv';
+  inp.onchange=e=>{
+    const f=e.target.files[0]; if(!f) return;
+    const reader=new FileReader();
+    reader.onload=ev=>{
+      try{
+        const wb=XLSX.read(ev.target.result,{type:'binary'});
+        const rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,defval:''});
+        if(rows.length<2){ toast('ไม่พบข้อมูลในไฟล์','err'); return; }
+        let cnt=0;
+        for(let i=1;i<rows.length;i++){
+          const r=rows[i]; const name=String(r[1]||'').trim(); if(!name) continue;
+          const code=String(r[0]||'').trim();
+          const category=String(r[2]||'').trim();
+          const price=parseFloat(r[3])||0;
+          const target=parseFloat(r[4])||35;
+          let m=code?DATA.menus.find(x=>x.code===code&&x.brandId===protectedBrand):null;
+          if(!m) m=DATA.menus.find(x=>x.name===name&&x.brandId===protectedBrand);
+          if(m){ Object.assign(m,{name,category,sellingPrice:price,targetPct:target}); }
+          else { DATA.menus.push({id:uid('menu'),brandId:protectedBrand,code:code||nextCode('M',DATA.menus),name,category,sellingPrice:price,targetPct:target,active:true,items:[]}); }
+          cnt++;
+        }
+        // Sheet 2: ingredient lines
+        if(wb.SheetNames.length>=2){
+          const ingRows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[1]],{header:1,defval:''});
+          for(let i=1;i<ingRows.length;i++){
+            const r=ingRows[i];
+            const mCode=String(r[0]||'').trim(); const matCode=String(r[1]||'').trim();
+            if(!mCode||!matCode) continue;
+            const menu=DATA.menus.find(x=>x.code===mCode&&x.brandId===protectedBrand);
+            const mat=DATA.materials.find(x=>x.code===matCode);
+            if(menu&&mat&&!(menu.items||[]).find(it=>it.ref===mat.id)){
+              menu.items=menu.items||[];
+              menu.items.push({type:'rm',ref:mat.id,qty:parseFloat(r[2])||0,unit:String(r[3]||mat.unit)});
+            }
+          }
+        }
+        save(); render(); toast(`Import สำเร็จ: ${cnt} เมนู`);
+      }catch(ex){ toast('อ่านไฟล์ไม่ได้: '+ex.message,'err'); }
+    };
+    reader.readAsBinaryString(f);
+  };
+  inp.click();
+}
+
+function exportBomXLS(){
+  if(!window.XLSX){ toast('SheetJS ยังไม่โหลด','err'); return; }
+  const wb=XLSX.utils.book_new();
+  const brand=BRANDS.find(b=>b.id===protectedBrand);
+  const boms=DATA.boms.filter(b=>b.brandId===protectedBrand);
+  const ws1=XLSX.utils.aoa_to_sheet([
+    ['รหัส BOM','ชื่อสูตร','แบรนด์','ผลผลิต (Batch)','หน่วย','Yield %','ต้นทุน/Batch','ต้นทุน/หน่วย','หมายเหตุ'],
+    ...boms.map(b=>{
+      const batch=bomBatchCost(b),per=bomCostPerUnit(b);
+      return [b.code||'',b.name,brand?.short||b.brandId,b.outputQty,b.outputUnit,
+              +((b.yieldPercent||1)*100).toFixed(1),+batch.toFixed(2),+per.toFixed(4),b.notes||''];
+    })
+  ]);
+  ws1['!cols']=[{wch:12},{wch:25},{wch:12},{wch:14},{wch:8},{wch:8},{wch:14},{wch:14},{wch:20}];
+  XLSX.utils.book_append_sheet(wb,ws1,'BOM List');
+
+  const ingData=[['รหัส BOM','ชื่อสูตร','ประเภท','รหัสวัตถุดิบ/BOM','ชื่อวัตถุดิบ/สูตร','จำนวน','หน่วย','ราคา/หน่วย','ต้นทุน']];
+  for(const b of boms){
+    for(const it of (b.items||[])){
+      let refCode='',refName='',uc=0;
+      if(it.type==='rm'){ const mat=getMaterial(it.ref); refCode=mat?.code||''; refName=mat?.name||''; uc=rmCostPerUnit(mat); }
+      else { const sub=getBom(it.ref); refCode=sub?.code||''; refName=sub?.name||''; uc=bomCostPerUnit(sub); }
+      ingData.push([b.code||'',b.name,it.type==='rm'?'RM':'BOM',refCode,refName,it.qty,it.unit,+uc.toFixed(4),+lineCost(it).toFixed(2)]);
+    }
+  }
+  const ws2=XLSX.utils.aoa_to_sheet(ingData);
+  ws2['!cols']=[{wch:12},{wch:25},{wch:8},{wch:14},{wch:25},{wch:10},{wch:8},{wch:12},{wch:12}];
+  XLSX.utils.book_append_sheet(wb,ws2,'ส่วนผสม');
+
+  XLSX.writeFile(wb,`BOM_${brand?.short||protectedBrand}_${new Date().toISOString().slice(0,10)}.xlsx`);
+  toast('Export BOM สำเร็จ');
+}
+
+function importBomXLS(){
+  if(!window.XLSX){ toast('SheetJS ยังไม่โหลด','err'); return; }
+  const inp=document.createElement('input'); inp.type='file'; inp.accept='.xlsx,.xls,.csv';
+  inp.onchange=e=>{
+    const f=e.target.files[0]; if(!f) return;
+    const reader=new FileReader();
+    reader.onload=ev=>{
+      try{
+        const wb=XLSX.read(ev.target.result,{type:'binary'});
+        const rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,defval:''});
+        if(rows.length<2){ toast('ไม่พบข้อมูลในไฟล์','err'); return; }
+        let cnt=0;
+        for(let i=1;i<rows.length;i++){
+          const r=rows[i]; const name=String(r[1]||'').trim(); if(!name) continue;
+          const code=String(r[0]||'').trim();
+          const outputQty=parseFloat(r[3])||1000;
+          const outputUnit=String(r[4]||'ml').trim();
+          const yieldPct=parseFloat(r[5])||100;
+          const notes=String(r[5]||'').trim();
+          let b=code?DATA.boms.find(x=>x.code===code&&x.brandId===protectedBrand):null;
+          if(!b) b=DATA.boms.find(x=>x.name===name&&x.brandId===protectedBrand);
+          if(b){ Object.assign(b,{name,outputQty,outputUnit,yieldPercent:yieldPct/100,notes}); }
+          else { DATA.boms.push({id:uid('bom'),brandId:protectedBrand,code:code||nextCode('BOM',DATA.boms),name,outputQty,outputUnit,yieldPercent:yieldPct/100,notes,items:[]}); }
+          cnt++;
+        }
+        if(wb.SheetNames.length>=2){
+          const ingRows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[1]],{header:1,defval:''});
+          for(let i=1;i<ingRows.length;i++){
+            const r=ingRows[i];
+            const bCode=String(r[0]||'').trim(); const matCode=String(r[1]||'').trim();
+            if(!bCode||!matCode) continue;
+            const bom=DATA.boms.find(x=>x.code===bCode&&x.brandId===protectedBrand);
+            const mat=DATA.materials.find(x=>x.code===matCode);
+            if(bom&&mat&&!(bom.items||[]).find(it=>it.ref===mat.id)){
+              bom.items=bom.items||[];
+              bom.items.push({type:'rm',ref:mat.id,qty:parseFloat(r[2])||0,unit:String(r[3]||mat.unit)});
+            }
+          }
+        }
+        save(); render(); toast(`Import BOM สำเร็จ: ${cnt} สูตร`);
+      }catch(ex){ toast('อ่านไฟล์ไม่ได้: '+ex.message,'err'); }
+    };
+    reader.readAsBinaryString(f);
+  };
+  inp.click();
+}
+
 function viewAdmin(){
   if(!isLoggedIn()){ setTimeout(doLoginFlow,0); return `<div style="text-align:center;padding:80px"><div style="font-size:52px;margin-bottom:16px">🔐</div><h2>กรุณาเข้าสู่ระบบก่อน</h2><button class="btn primary" style="margin-top:16px" onclick="doLoginFlow()">เข้าสู่ระบบ</button></div>`; }
   if(!isAdmin()) return `<div style="text-align:center;padding:80px"><div style="font-size:52px;margin-bottom:16px">🚫</div><h2>สงวนสำหรับ Admin เท่านั้น</h2></div>`;
